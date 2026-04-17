@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Page Insight Tool</title>
+	<title>Web Page Analyzer</title>
 </head>
 <body>
 
-<h1>Page Insight Tool</h1>
+<h1>Web Page Analyzer</h1>
 
 <form method="POST" action="/analyze">
-<input type="text" name="url" placeholder="Enter URL">
-<button type="submit">Analyze</button>
+	<input type="text" name="url" placeholder="Enter URL">
+	<button type="submit">Analyze</button>
 </form>
+
+{{if .Result}}
+<p>{{.Result}}</p>
+{{end}}
 
 </body>
 </html>
