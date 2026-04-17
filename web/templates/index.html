@@ -2,19 +2,38 @@
 <html>
 <head>
 	<title>Web Page Analyzer</title>
+	<link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
-<h1>Web Page Analyzer</h1>
+<div class="container">
 
-<form method="POST" action="/analyze">
-	<input type="text" name="url" placeholder="Enter URL">
-	<button type="submit">Analyze</button>
-</form>
+	<h1>Web Page Analyzer</h1>
 
-{{if .Result}}
-<p>{{.Result}}</p>
-{{end}}
+	<form method="POST" action="/analyze">
+		<input
+			type="text"
+			name="url"
+			placeholder="Enter URL (e.g. https://example.com)"
+			required
+		>
+		<button type="submit">
+			Analyze
+		</button>
+	</form>
+
+	{{if .Result}}
+	<div class="result">
+		{{.Result}}
+	</div>
+	{{end}}
+
+	<div class="footer">
+		Web Page Analyze by Tien Dung Nguyen
+	</div>
+
+</div>
 
 </body>
 </html>

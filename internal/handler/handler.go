@@ -11,6 +11,7 @@ import (
 
 var tmpl *template.Template
 var fetchURL = fetcher.FetchURL
+var parseHTML = parser.ParseHTML
 
 func SetTemplate(t *template.Template) {
 	tmpl = t
@@ -44,7 +45,7 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	doc, err := parser.ParseHTML(html)
+	doc, err := parseHTML(html)
 
 	if err != nil {
 		tmpl.Execute(w,map[string]string{

@@ -6,10 +6,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var newDocumentFromReader = goquery.NewDocumentFromReader
+
 func ParseHTML(html []byte) (*goquery.Document, error) {
 	reader := bytes.NewReader(html)
 
-	doc, err := goquery.NewDocumentFromReader(reader)
+	doc, err := newDocumentFromReader(reader)
 
 	if err != nil {
 		return nil, err

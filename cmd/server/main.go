@@ -18,6 +18,12 @@ func main() {
 	http.HandleFunc("/", handler.IndexHandler)
 	http.HandleFunc("/analyze", handler.AnalyzeHandler)
 
+	http.Handle("/static/",
+		http.StripPrefix("/static/",
+			http.FileServer(http.Dir("web/static")),
+		),
+	)
+
 	log.Println("Server running at http://localhost:8080")
 
 	err := http.ListenAndServe(":8080", nil)
