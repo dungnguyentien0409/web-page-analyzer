@@ -3,20 +3,29 @@ package main
 import (
 	"log"
 	"net/http"
+
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 )
 
 func main() {
 
-	fs := http.FileServer(
-		http.Dir("web/templates"),
-	)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(
+			w,
+			r,
+			"web/templates/index.html",
+		)
 
-	http.Handle("/", fs)
+	})
+
+	http.HandleFunc(
+		"/analyze",
+		handler.AnalyzeHandler,
+	)
 
 	log.Println("Server running at http://localhost:8080")
 
 	err := http.ListenAndServe(":8080", nil)
-
 	if err != nil {
 		log.Fatal(err)
 	}
