@@ -3,6 +3,7 @@ package integration
 import (
 	"html/template"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -42,13 +43,15 @@ func TestAnalyze_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse template: %v", err)
 	}
-	f := fetcher.NewDefaultFetcher()
-	p := parser.NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	f := fetcher.NewDefaultFetcher(logger)
+	p := parser.NewDefaultAnalyzer(logger)
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
 		Fetcher:        f,
 		Analyzer:       p,
 		RequestTimeout: 10 * time.Second,
+		Logger:         logger,
 	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.IndexHandler)
@@ -68,14 +71,12 @@ func TestAnalyze_Integration(t *testing.T) {
 		}
 		body, _ := io.ReadAll(resp.Body)
 		bodyStr := string(body)
-		// Verify Summary
 		if !strings.Contains(bodyStr, "Full Integration Test") {
 			t.Error("response missing page title")
 		}
 		if !strings.Contains(bodyStr, "HTML5") {
 			t.Error("response missing HTML version")
 		}
-		// Verify Links: 1 Internal, 2 External (Google + Broken), 1 Inaccessible (Broken)
 		if !strings.Contains(bodyStr, "Internal Links:</td><td class=\"value-col\">1</td>") {
 			t.Error("internal links count mismatch")
 		}
@@ -85,7 +86,6 @@ func TestAnalyze_Integration(t *testing.T) {
 		if !strings.Contains(bodyStr, "Inaccessible Links:</td><td class=\"value-col\" style=\"color: #b91c1c\">1</td>") {
 			t.Error("inaccessible links count mismatch")
 		}
-		// Verify Headings: h1-h6
 		for i := 1; i <= 6; i++ {
 			headingTag := "h" + string(rune(48+i))
 			if !strings.Contains(bodyStr, "<td class=\"label-col\">"+headingTag+"</td><td class=\"value-col\">1</td>") {

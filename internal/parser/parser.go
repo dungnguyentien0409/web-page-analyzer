@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log/slog"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
@@ -33,10 +34,12 @@ type Analyzer interface {
 
 type DefaultAnalyzer struct {
 	documentProvider func(io.Reader) (*goquery.Document, error)
+	logger           *slog.Logger
 }
 
-func NewDefaultAnalyzer() *DefaultAnalyzer {
+func NewDefaultAnalyzer(logger *slog.Logger) *DefaultAnalyzer {
 	return &DefaultAnalyzer{
+		logger:           logger,
 		documentProvider: goquery.NewDocumentFromReader,
 	}
 }
@@ -49,6 +52,7 @@ func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {
 	return doc, nil
 }
 func (a *DefaultAnalyzer) AnalyzePage(ctx context.Context, req PageAnalysisRequest) (*PageAnalysisResult, error) {
+	a.logger.Info("analyzing page", "url", req.URL)
 	doc, err := a.ParseHTML(req.HTML)
 	if err != nil {
 		return nil, err
@@ -67,7 +71,7 @@ func (a *DefaultAnalyzer) AnalyzePage(ctx context.Context, req PageAnalysisReque
 	}()
 	go func() {
 		defer wg.Done()
-		links, lErr := extractLinks(ctx, doc, req.URL)
+		links, lErr := extractLinks(ctx, a.logger, doc, req.URL)
 		if lErr != nil {
 			err = lErr
 			return

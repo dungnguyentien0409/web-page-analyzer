@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -16,6 +17,7 @@ type HandlerConfig struct {
 	Fetcher        fetcher.Fetcher
 	Analyzer       parser.Analyzer
 	RequestTimeout time.Duration
+	Logger         *slog.Logger
 }
 
 type Handler struct {
@@ -23,6 +25,7 @@ type Handler struct {
 	fetcher        fetcher.Fetcher
 	analyzePage    func(context.Context, parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error)
 	requestTimeout time.Duration
+	logger         *slog.Logger
 }
 
 func NewHandler(cfg HandlerConfig) *Handler {
@@ -31,6 +34,7 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		fetcher:        cfg.Fetcher,
 		analyzePage:    cfg.Analyzer.AnalyzePage,
 		requestTimeout: cfg.RequestTimeout,
+		logger:         cfg.Logger,
 	}
 }
 func (h *Handler) render(w http.ResponseWriter, data any) {
@@ -59,11 +63,13 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 
 	htmlContent, err := h.fetcher.Fetch(ctx, urlInput)
 	if err != nil {
+		h.logger.Error("fetch error in handler", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
 	analysis, err := h.analyzePage(ctx, parser.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
+		h.logger.Error("analysis error in handler", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Failed to parse HTML"})
 		return
 	}

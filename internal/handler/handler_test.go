@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -31,11 +33,13 @@ func setupTestHandler() *Handler {
 </html>
 `),
 	)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return NewHandler(HandlerConfig{
 		Template:       t,
-		Fetcher:        fetcher.NewDefaultFetcher(),
-		Analyzer:       parser.NewDefaultAnalyzer(),
+		Fetcher:        fetcher.NewDefaultFetcher(logger),
+		Analyzer:       parser.NewDefaultAnalyzer(logger),
 		RequestTimeout: 5 * time.Second,
+		Logger:         logger,
 	})
 }
 func TestIndexHandler(t *testing.T) {

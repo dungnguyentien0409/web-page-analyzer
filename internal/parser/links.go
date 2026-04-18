@@ -2,6 +2,7 @@ package parser
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -27,12 +28,26 @@ var (
 	}
 )
 
-func isLinkAccessible(ctx context.Context, link string) bool {
+func isLinkAccessible(ctx context.Context, logger *slog.Logger, link string) bool {
 	req, err := http.NewRequestWithContext(ctx, "HEAD", link, nil)
 	if err != nil {
 		return false
 	}
-	resp, err := linkCheckClient.Do(req)
+	logger.Debug("checking link", "url", link)
+	var resp *http.Response
+	for i := 0; i < 3; i++ {
+		resp, err = linkCheckClient.Do(req)
+		if err == nil && resp.StatusCode < 500 {
+			break
+		}
+		if resp != nil {
+			resp.Body.Close()
+		}
+		logger.Warn("retrying link check", "url", link, "attempt", i+1)
+		if ctx.Err() != nil {
+			return false
+		}
+	}
 	if err != nil {
 		return false
 	}
@@ -42,6 +57,7 @@ func isLinkAccessible(ctx context.Context, link string) bool {
 
 func extractLinks(
 	ctx context.Context,
+	logger *slog.Logger,
 	doc *goquery.Document,
 	baseURLStr string,
 ) (*LinkAnalysisResult, error) {
@@ -58,7 +74,7 @@ func extractLinks(
 	for w := 0; w < numWorkers; w++ {
 		go func() {
 			for l := range jobs {
-				if !isLinkAccessible(ctx, l) {
+				if !isLinkAccessible(ctx, logger, l) {
 					mu.Lock()
 					res.Inaccessible++
 					mu.Unlock()

@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
 func TestParseHTML_Success(t *testing.T) {
-	a := NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(logger)
 	html := []byte("<html><head><title>Test</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -21,7 +23,9 @@ func TestParseHTML_Success(t *testing.T) {
 	}
 }
 func TestParseHTML_Error(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	a := &DefaultAnalyzer{
+		logger: logger,
 		documentProvider: func(r io.Reader) (*goquery.Document, error) {
 			return nil, errors.New("parse error")
 		},
@@ -32,7 +36,8 @@ func TestParseHTML_Error(t *testing.T) {
 	}
 }
 func TestAnalyzePage(t *testing.T) {
-	a := NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(logger)
 	html := []byte(`<html><head><title>Test</title></head><body><form><input type="password"></form></body></html>`)
 	url := "https://test.com"
 	result, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: url})
@@ -47,7 +52,8 @@ func TestAnalyzePage(t *testing.T) {
 	}
 }
 func TestAnalyzePage_InvalidURL(t *testing.T) {
-	a := NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(logger)
 	html := []byte(`<html></html>`)
 	_, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: " %%%% "})
 	if err == nil {
@@ -55,7 +61,9 @@ func TestAnalyzePage_InvalidURL(t *testing.T) {
 	}
 }
 func TestAnalyzePage_ParseError(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	a := &DefaultAnalyzer{
+		logger: logger,
 		documentProvider: func(r io.Reader) (*goquery.Document, error) {
 			return nil, errors.New("parse error")
 		},

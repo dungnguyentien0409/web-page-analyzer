@@ -1,11 +1,14 @@
 package parser
 
 import (
+	"io"
+	"log/slog"
 	"testing"
 )
 
 func TestExtractTitle_WithTitle(t *testing.T) {
-	a := NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(logger)
 	html := []byte("<html><head><title>Hello</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -17,7 +20,8 @@ func TestExtractTitle_WithTitle(t *testing.T) {
 	}
 }
 func TestExtractTitle_NoTitle(t *testing.T) {
-	a := NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(logger)
 	html := []byte("<html><head></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -29,7 +33,8 @@ func TestExtractTitle_NoTitle(t *testing.T) {
 	}
 }
 func TestExtractTitle_MultipleTitles(t *testing.T) {
-	a := NewDefaultAnalyzer()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(logger)
 	html := []byte("<html><head><title>First</title><title>Second</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
