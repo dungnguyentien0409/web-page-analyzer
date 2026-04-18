@@ -2,3 +2,4 @@ bin/
 *.exe
 *.log
 .env
+cover.out

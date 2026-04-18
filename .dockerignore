@@ -1,0 +1,5 @@
+.git
+*test.go
+cover.out
+bin/
+vendor/
