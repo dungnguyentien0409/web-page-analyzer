@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
 func TestAnalyze_Integration(t *testing.T) {
@@ -45,7 +45,7 @@ func TestAnalyze_Integration(t *testing.T) {
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	f := fetcher.NewDefaultFetcher(logger)
-	p := parser.NewDefaultAnalyzer(parser.AnalyzerConfig{
+	p := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,

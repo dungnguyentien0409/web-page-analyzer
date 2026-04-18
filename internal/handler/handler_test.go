@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 )
 
 type mockFetcher struct {
@@ -37,7 +37,7 @@ func setupTestHandler() *Handler {
 	return NewHandler(HandlerConfig{
 		Template: t,
 		Fetcher:  fetcher.NewDefaultFetcher(logger),
-		Analyzer: parser.NewDefaultAnalyzer(parser.AnalyzerConfig{
+		Analyzer: analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 			Logger:      logger,
 			RetryCount:  3,
 			WorkerCount: 20,
@@ -96,7 +96,7 @@ func TestAnalyzeHandler_ParseError(t *testing.T) {
 	h.fetcher = &mockFetcher{fn: func(ctx context.Context, url string) ([]byte, error) {
 		return []byte("<html>"), nil
 	}}
-	h.analyzePage = func(ctx context.Context, req parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error) {
+	h.analyzePage = func(ctx context.Context, req analyzer.PageAnalysisRequest) (*analyzer.PageAnalysisResult, error) {
 		return nil, fmt.Errorf("analysis failed")
 	}
 	form := url.Values{}

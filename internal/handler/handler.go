@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
 type HandlerConfig struct {
 	Template       *template.Template
 	Fetcher        fetcher.Fetcher
-	Analyzer       parser.Analyzer
+	Analyzer       analyzer.Analyzer
 	RequestTimeout time.Duration
 	Logger         *slog.Logger
 }
@@ -23,7 +23,7 @@ type HandlerConfig struct {
 type Handler struct {
 	tmpl           *template.Template
 	fetcher        fetcher.Fetcher
-	analyzePage    func(context.Context, parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error)
+	analyzePage    func(context.Context, analyzer.PageAnalysisRequest) (*analyzer.PageAnalysisResult, error)
 	requestTimeout time.Duration
 	logger         *slog.Logger
 }
@@ -67,7 +67,7 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
-	analysis, err := h.analyzePage(ctx, parser.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
+	analysis, err := h.analyzePage(ctx, analyzer.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
 		h.logger.Error("analysis error in handler", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Failed to parse HTML"})

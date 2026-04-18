@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/config"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	}
 	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
 	fetcherSvc := fetcher.NewDefaultFetcher(logger)
-	analyzerSvc := parser.NewDefaultAnalyzer(parser.AnalyzerConfig{
+	analyzerSvc := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  cfg.LinkCheckRetries,
 		WorkerCount: cfg.LinkCheckWorkers,
