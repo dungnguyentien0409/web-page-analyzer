@@ -54,6 +54,15 @@ func TestFetchURL_InvalidURL(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+func TestFetchURL_ContextCanceled(t *testing.T) {
+	f := NewDefaultFetcher()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := f.Fetch(ctx, "http://example.com")
+	if err == nil {
+		t.Fatal("expected error for canceled context")
+	}
+}
 func TestFetchURL_ReadError(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

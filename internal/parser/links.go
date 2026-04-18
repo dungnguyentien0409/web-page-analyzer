@@ -53,8 +53,21 @@ func extractLinks(
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	linkSet := make(map[string]bool)
-	sem := make(chan struct{}, 20)
-	doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
+	const numWorkers = 20
+	jobs := make(chan string)
+	for w := 0; w < numWorkers; w++ {
+		go func() {
+			for l := range jobs {
+				if !isLinkAccessible(ctx, l) {
+					mu.Lock()
+					res.Inaccessible++
+					mu.Unlock()
+				}
+				wg.Done()
+			}
+		}()
+	}
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
 		href, exists := s.Attr("href")
 		if !exists {
 			return
@@ -76,26 +89,18 @@ func extractLinks(
 			return
 		}
 		fullURL := resolved.String()
-		if resolved.Host == baseURL.Host {
-			res.Internal++
-		} else {
-			res.External++
-		}
 		if !linkSet[fullURL] {
 			linkSet[fullURL] = true
+			if resolved.Host == baseURL.Host {
+				res.Internal++
+			} else {
+				res.External++
+			}
 			wg.Add(1)
-			go func(l string) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				if !isLinkAccessible(ctx, l) {
-					mu.Lock()
-					res.Inaccessible++
-					mu.Unlock()
-				}
-			}(fullURL)
+			jobs <- fullURL
 		}
 	})
+	close(jobs)
 	wg.Wait()
 	return res, nil
 }

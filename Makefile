@@ -1,4 +1,4 @@
-.PHONY: build docker-build run docker-run unit coverage clean
+.PHONY: build docker-build run docker-run unit integration coverage clean
 
 BINARY_DIR=bin
 BINARY_NAME=$(BINARY_DIR)/analyzer
@@ -24,6 +24,10 @@ docker-run: docker-build
 unit:
 	@echo "Running unit tests..."
 	go test ./...
+
+integration:
+	@echo "Running integration tests..."
+	go test ./test/integration/...
 
 coverage:
 	@echo "Running unit tests with coverage report..."
