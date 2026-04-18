@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/config"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
@@ -19,15 +20,27 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	const requestTimeout = 15 * time.Second
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		configPath = "configs/development.json"
+	}
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		logger.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
 	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
 	fetcherSvc := fetcher.NewDefaultFetcher(logger)
-	analyzer := parser.NewDefaultAnalyzer(logger)
+	analyzerSvc := parser.NewDefaultAnalyzer(parser.AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  cfg.LinkCheckRetries,
+		WorkerCount: cfg.LinkCheckWorkers,
+	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
 		Fetcher:        fetcherSvc,
-		Analyzer:       analyzer,
-		RequestTimeout: requestTimeout,
+		Analyzer:       analyzerSvc,
+		RequestTimeout: time.Duration(cfg.RequestTimeoutSeconds) * time.Second,
 		Logger:         logger,
 	})
 	http.HandleFunc("/", h.IndexHandler)

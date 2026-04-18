@@ -8,7 +8,11 @@ import (
 
 func TestExtractTitle_WithTitle(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	a := NewDefaultAnalyzer(logger)
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	html := []byte("<html><head><title>Hello</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -21,7 +25,11 @@ func TestExtractTitle_WithTitle(t *testing.T) {
 }
 func TestExtractTitle_NoTitle(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	a := NewDefaultAnalyzer(logger)
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	html := []byte("<html><head></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -34,7 +42,11 @@ func TestExtractTitle_NoTitle(t *testing.T) {
 }
 func TestExtractTitle_MultipleTitles(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	a := NewDefaultAnalyzer(logger)
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	html := []byte("<html><head><title>First</title><title>Second</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {

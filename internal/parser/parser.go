@@ -32,15 +32,25 @@ type Analyzer interface {
 	AnalyzePage(ctx context.Context, req PageAnalysisRequest) (*PageAnalysisResult, error)
 }
 
+type AnalyzerConfig struct {
+	Logger      *slog.Logger
+	RetryCount  int
+	WorkerCount int
+}
+
 type DefaultAnalyzer struct {
 	documentProvider func(io.Reader) (*goquery.Document, error)
 	logger           *slog.Logger
+	retryCount       int
+	workerCount      int
 }
 
-func NewDefaultAnalyzer(logger *slog.Logger) *DefaultAnalyzer {
+func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
 	return &DefaultAnalyzer{
-		logger:           logger,
+		logger:           cfg.Logger,
 		documentProvider: goquery.NewDocumentFromReader,
+		retryCount:       cfg.RetryCount,
+		workerCount:      cfg.WorkerCount,
 	}
 }
 func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {
@@ -71,7 +81,7 @@ func (a *DefaultAnalyzer) AnalyzePage(ctx context.Context, req PageAnalysisReque
 	}()
 	go func() {
 		defer wg.Done()
-		links, lErr := extractLinks(ctx, a.logger, doc, req.URL)
+		links, lErr := a.extractLinks(ctx, doc, req.URL)
 		if lErr != nil {
 			err = lErr
 			return

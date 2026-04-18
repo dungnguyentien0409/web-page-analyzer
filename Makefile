@@ -15,7 +15,7 @@ docker-build:
 
 run: build
 	@echo "Running local..."
-	./$(BINARY_NAME)
+	CONFIG_PATH=configs/development.json ./$(BINARY_NAME)
 
 docker-run: docker-build
 	@echo "Running container..."

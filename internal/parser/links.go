@@ -2,7 +2,6 @@ package parser
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -28,14 +27,14 @@ var (
 	}
 )
 
-func isLinkAccessible(ctx context.Context, logger *slog.Logger, link string) bool {
+func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) bool {
 	req, err := http.NewRequestWithContext(ctx, "HEAD", link, nil)
 	if err != nil {
 		return false
 	}
-	logger.Debug("checking link", "url", link)
+	a.logger.Debug("checking link", "url", link)
 	var resp *http.Response
-	for i := 0; i < 3; i++ {
+	for i := 0; i < a.retryCount; i++ {
 		resp, err = linkCheckClient.Do(req)
 		if err == nil && resp.StatusCode < 500 {
 			break
@@ -43,10 +42,10 @@ func isLinkAccessible(ctx context.Context, logger *slog.Logger, link string) boo
 		if resp != nil {
 			resp.Body.Close()
 		}
-		logger.Warn("retrying link check", "url", link, "attempt", i+1)
 		if ctx.Err() != nil {
 			return false
 		}
+		a.logger.Warn("retrying link check", "url", link, "attempt", i+1)
 	}
 	if err != nil {
 		return false
@@ -55,9 +54,8 @@ func isLinkAccessible(ctx context.Context, logger *slog.Logger, link string) boo
 	return resp.StatusCode >= 200 && resp.StatusCode < 400
 }
 
-func extractLinks(
+func (a *DefaultAnalyzer) extractLinks(
 	ctx context.Context,
-	logger *slog.Logger,
 	doc *goquery.Document,
 	baseURLStr string,
 ) (*LinkAnalysisResult, error) {
@@ -69,12 +67,11 @@ func extractLinks(
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	linkSet := make(map[string]bool)
-	const numWorkers = 20
 	jobs := make(chan string)
-	for w := 0; w < numWorkers; w++ {
+	for w := 0; w < a.workerCount; w++ {
 		go func() {
 			for l := range jobs {
-				if !isLinkAccessible(ctx, logger, l) {
+				if !a.isLinkAccessible(ctx, l) {
 					mu.Lock()
 					res.Inaccessible++
 					mu.Unlock()

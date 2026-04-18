@@ -12,7 +12,11 @@ import (
 
 func TestParseHTML_Success(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	a := NewDefaultAnalyzer(logger)
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	html := []byte("<html><head><title>Test</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -37,7 +41,11 @@ func TestParseHTML_Error(t *testing.T) {
 }
 func TestAnalyzePage(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	a := NewDefaultAnalyzer(logger)
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	html := []byte(`<html><head><title>Test</title></head><body><form><input type="password"></form></body></html>`)
 	url := "https://test.com"
 	result, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: url})
@@ -53,7 +61,11 @@ func TestAnalyzePage(t *testing.T) {
 }
 func TestAnalyzePage_InvalidURL(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	a := NewDefaultAnalyzer(logger)
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	html := []byte(`<html></html>`)
 	_, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: " %%%% "})
 	if err == nil {

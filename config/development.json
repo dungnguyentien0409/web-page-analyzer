@@ -1,0 +1,5 @@
+{
+  "request_timeout_seconds": 15,
+  "link_check_workers": 20,
+  "link_check_retries": 3
+}

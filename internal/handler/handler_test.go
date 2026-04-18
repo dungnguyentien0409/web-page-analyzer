@@ -35,9 +35,13 @@ func setupTestHandler() *Handler {
 	)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return NewHandler(HandlerConfig{
-		Template:       t,
-		Fetcher:        fetcher.NewDefaultFetcher(logger),
-		Analyzer:       parser.NewDefaultAnalyzer(logger),
+		Template: t,
+		Fetcher:  fetcher.NewDefaultFetcher(logger),
+		Analyzer: parser.NewDefaultAnalyzer(parser.AnalyzerConfig{
+			Logger:      logger,
+			RetryCount:  3,
+			WorkerCount: 20,
+		}),
 		RequestTimeout: 5 * time.Second,
 		Logger:         logger,
 	})

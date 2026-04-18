@@ -45,7 +45,11 @@ func TestAnalyze_Integration(t *testing.T) {
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	f := fetcher.NewDefaultFetcher(logger)
-	p := parser.NewDefaultAnalyzer(logger)
+	p := parser.NewDefaultAnalyzer(parser.AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  3,
+		WorkerCount: 20,
+	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
 		Fetcher:        f,
