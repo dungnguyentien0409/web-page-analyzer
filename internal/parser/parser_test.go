@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseHTML_Success(t *testing.T) {
-	a := NewAnalyzer()
+	a := NewDefaultAnalyzer()
 	html := []byte("<html><head><title>Test</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -20,7 +20,7 @@ func TestParseHTML_Success(t *testing.T) {
 	}
 }
 func TestParseHTML_Error(t *testing.T) {
-	a := &Analyzer{
+	a := &DefaultAnalyzer{
 		documentProvider: func(r io.Reader) (*goquery.Document, error) {
 			return nil, errors.New("parse error")
 		},
@@ -31,7 +31,7 @@ func TestParseHTML_Error(t *testing.T) {
 	}
 }
 func TestExtractTitle_WithTitle(t *testing.T) {
-	a := NewAnalyzer()
+	a := NewDefaultAnalyzer()
 	html := []byte("<html><head><title>Hello</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -43,7 +43,7 @@ func TestExtractTitle_WithTitle(t *testing.T) {
 	}
 }
 func TestExtractTitle_NoTitle(t *testing.T) {
-	a := NewAnalyzer()
+	a := NewDefaultAnalyzer()
 	html := []byte("<html><head></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -55,7 +55,7 @@ func TestExtractTitle_NoTitle(t *testing.T) {
 	}
 }
 func TestExtractTitle_MultipleTitles(t *testing.T) {
-	a := NewAnalyzer()
+	a := NewDefaultAnalyzer()
 	html := []byte("<html><head><title>First</title><title>Second</title></head></html>")
 	doc, err := a.ParseHTML(html)
 	if err != nil {
@@ -67,10 +67,10 @@ func TestExtractTitle_MultipleTitles(t *testing.T) {
 	}
 }
 func TestAnalyzePage(t *testing.T) {
-	a := NewAnalyzer()
+	a := NewDefaultAnalyzer()
 	html := []byte(`<html><head><title>Test</title></head><body><form><input type="password"></form></body></html>`)
 	url := "https://test.com"
-	result, err := a.AnalyzePage(PageSource{HTML: html, URL: url})
+	result, err := a.AnalyzePage(PageAnalysisRequest{HTML: html, URL: url})
 	if err != nil {
 		t.Fatalf("AnalyzePage failed: %v", err)
 	}
@@ -82,20 +82,20 @@ func TestAnalyzePage(t *testing.T) {
 	}
 }
 func TestAnalyzePage_InvalidURL(t *testing.T) {
-	a := NewAnalyzer()
+	a := NewDefaultAnalyzer()
 	html := []byte(`<html></html>`)
-	_, err := a.AnalyzePage(PageSource{HTML: html, URL: " %%%% "})
+	_, err := a.AnalyzePage(PageAnalysisRequest{HTML: html, URL: " %%%% "})
 	if err == nil {
 		t.Error("expected error for invalid base URL")
 	}
 }
 func TestAnalyzePage_ParseError(t *testing.T) {
-	a := &Analyzer{
+	a := &DefaultAnalyzer{
 		documentProvider: func(r io.Reader) (*goquery.Document, error) {
 			return nil, errors.New("parse error")
 		},
 	}
-	_, err := a.AnalyzePage(PageSource{HTML: []byte("<html>"), URL: "https://test.com"})
+	_, err := a.AnalyzePage(PageAnalysisRequest{HTML: []byte("<html>"), URL: "https://test.com"})
 	if err == nil {
 		t.Error("expected error from ParseHTML")
 	}

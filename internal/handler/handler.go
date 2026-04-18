@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"html/template"
 	"net/http"
 
@@ -10,21 +11,27 @@ import (
 
 type Handler struct {
 	tmpl        *template.Template
-	fetchURL    func(string) ([]byte, error)
-	analyzePage func(parser.PageSource) (*parser.PageAnalysis, error)
+	fetcher     fetcher.Fetcher
+	analyzePage func(parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error)
 }
 
-func NewHandler(t *template.Template, a *parser.Analyzer) *Handler {
+func NewHandler(t *template.Template, f fetcher.Fetcher, a parser.Analyzer) *Handler {
 	return &Handler{
 		tmpl:        t,
-		fetchURL:    fetcher.FetchURL,
+		fetcher:     f,
 		analyzePage: a.AnalyzePage,
 	}
 }
-func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	if err := h.tmpl.Execute(w, nil); err != nil {
+func (h *Handler) render(w http.ResponseWriter, data any) {
+	var buf bytes.Buffer
+	if err := h.tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	w.Write(buf.Bytes())
+}
+func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
+	h.render(w, nil)
 }
 func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -36,21 +43,15 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is required", http.StatusBadRequest)
 		return
 	}
-	htmlContent, err := h.fetchURL(urlInput)
+	htmlContent, err := h.fetcher.Fetch(urlInput)
 	if err != nil {
-		h.tmpl.Execute(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
+		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
-	analysis, err := h.analyzePage(parser.PageSource{HTML: htmlContent, URL: urlInput})
+	analysis, err := h.analyzePage(parser.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
-		h.tmpl.Execute(w, map[string]any{"Error": "Failed to parse HTML"})
+		h.render(w, map[string]any{"Error": "Failed to parse HTML"})
 		return
 	}
-	err = h.tmpl.Execute(w, map[string]any{
-		"Result": analysis,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	h.render(w, map[string]any{"Result": analysis})
 }

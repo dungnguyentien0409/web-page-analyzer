@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
@@ -14,8 +15,9 @@ func main() {
 		template.ParseFiles("web/templates/index.html"),
 	)
 
-	analyzer := parser.NewAnalyzer()
-	h := handler.NewHandler(tmpl, analyzer)
+	fetcherSvc := fetcher.NewDefaultFetcher()
+	analyzer := parser.NewDefaultAnalyzer()
+	h := handler.NewHandler(tmpl, fetcherSvc, analyzer)
 
 	http.HandleFunc("/", h.IndexHandler)
 	http.HandleFunc("/analyze", h.AnalyzeHandler)

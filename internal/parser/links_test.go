@@ -32,18 +32,18 @@ func TestExtractLinks(t *testing.T) {
 		<input href="/not-an-a-tag">
 	`
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(html))
-	internal, external, inaccessible, err := extractLinks(doc, baseURL)
+	res, err := extractLinks(doc, baseURL)
 	if err != nil {
 		t.Fatalf("extractLinks failed: %v", err)
 	}
-	if internal != 1 {
-		t.Errorf("expected 1 internal link, got %d", internal)
+	if res.Internal != 1 {
+		t.Errorf("expected 1 internal link, got %d", res.Internal)
 	}
-	if external != 2 {
-		t.Errorf("expected 2 external links, got %d", external)
+	if res.External != 2 {
+		t.Errorf("expected 2 external links, got %d", res.External)
 	}
-	if inaccessible != 2 {
-		t.Errorf("expected 2 inaccessible links, got %d", inaccessible)
+	if res.Inaccessible != 2 {
+		t.Errorf("expected 2 inaccessible links, got %d", res.Inaccessible)
 	}
 }
 func TestIsLinkAccessible_Fail(t *testing.T) {
@@ -53,7 +53,7 @@ func TestIsLinkAccessible_Fail(t *testing.T) {
 }
 func TestExtractLinks_InvalidURL(t *testing.T) {
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(""))
-	_, _, _, err := extractLinks(doc, " %%%% ")
+	_, err := extractLinks(doc, " %%%% ")
 	if err == nil {
 		t.Error("expected error for invalid URL")
 	}

@@ -9,9 +9,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
+type mockFetcher struct {
+	fn func(string) ([]byte, error)
+}
+
+func (m *mockFetcher) Fetch(url string) ([]byte, error) {
+	return m.fn(url)
+}
 func setupTestHandler() *Handler {
 	t := template.Must(
 		template.New("test").Parse(`
@@ -21,7 +29,7 @@ func setupTestHandler() *Handler {
 </html>
 `),
 	)
-	return NewHandler(t, parser.NewAnalyzer())
+	return NewHandler(t, fetcher.NewDefaultFetcher(), parser.NewDefaultAnalyzer())
 }
 func TestIndexHandler(t *testing.T) {
 	h := setupTestHandler()
@@ -55,9 +63,9 @@ func TestAnalyzeHandler_EmptyURL(t *testing.T) {
 }
 func TestAnalyzeHandler_FetchError(t *testing.T) {
 	h := setupTestHandler()
-	h.fetchURL = func(url string) ([]byte, error) {
+	h.fetcher = &mockFetcher{fn: func(url string) ([]byte, error) {
 		return nil, fmt.Errorf("fetch failed")
-	}
+	}}
 	form := url.Values{}
 	form.Add("url", "https://example.com")
 	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
@@ -70,10 +78,10 @@ func TestAnalyzeHandler_FetchError(t *testing.T) {
 }
 func TestAnalyzeHandler_ParseError(t *testing.T) {
 	h := setupTestHandler()
-	h.fetchURL = func(url string) ([]byte, error) {
+	h.fetcher = &mockFetcher{fn: func(url string) ([]byte, error) {
 		return []byte("<html>"), nil
-	}
-	h.analyzePage = func(src parser.PageSource) (*parser.PageAnalysis, error) {
+	}}
+	h.analyzePage = func(req parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error) {
 		return nil, fmt.Errorf("analysis failed")
 	}
 	form := url.Values{}
@@ -88,9 +96,9 @@ func TestAnalyzeHandler_ParseError(t *testing.T) {
 }
 func TestAnalyzeHandler_Success(t *testing.T) {
 	h := setupTestHandler()
-	h.fetchURL = func(url string) ([]byte, error) {
+	h.fetcher = &mockFetcher{fn: func(url string) ([]byte, error) {
 		return []byte("<html><head><title>Test</title></head><body></body></html>"), nil
-	}
+	}}
 	form := url.Values{}
 	form.Add("url", "https://example.com")
 	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
@@ -107,9 +115,9 @@ func TestAnalyzeHandler_Success(t *testing.T) {
 func TestAnalyzeHandler_TemplateError(t *testing.T) {
 	h := setupTestHandler()
 	h.tmpl = template.Must(template.New("error").Option("missingkey=error").Parse("{{.InvalidField}}"))
-	h.fetchURL = func(url string) ([]byte, error) {
+	h.fetcher = &mockFetcher{fn: func(url string) ([]byte, error) {
 		return []byte("<html></html>"), nil
-	}
+	}}
 	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader("url=https://example.com"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()

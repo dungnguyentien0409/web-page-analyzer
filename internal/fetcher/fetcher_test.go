@@ -23,7 +23,8 @@ func TestFetchURL_Success(t *testing.T) {
 		}),
 	)
 	defer server.Close()
-	body, err := FetchURL(server.URL)
+	f := NewDefaultFetcher()
+	body, err := f.Fetch(server.URL)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -39,13 +40,15 @@ func TestFetchURL_HTTPErrorStatus(t *testing.T) {
 		}),
 	)
 	defer server.Close()
-	_, err := FetchURL(server.URL)
+	f := NewDefaultFetcher()
+	_, err := f.Fetch(server.URL)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 func TestFetchURL_InvalidURL(t *testing.T) {
-	_, err := FetchURL("://bad-url")
+	f := NewDefaultFetcher()
+	_, err := f.Fetch("://bad-url")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -66,7 +69,8 @@ func TestFetchURL_ReadError(t *testing.T) {
 		}),
 	)
 	defer server.Close()
-	_, err := FetchURL(server.URL)
+	f := NewDefaultFetcher()
+	_, err := f.Fetch(server.URL)
 	if err == nil {
 		t.Fatal("expected read error")
 	}

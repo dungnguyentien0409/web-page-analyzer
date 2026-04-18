@@ -3,16 +3,17 @@ package parser
 import (
 	"bytes"
 	"io"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-type PageSource struct {
+type PageAnalysisRequest struct {
 	HTML []byte
 	URL  string
 }
 
-type PageAnalysis struct {
+type PageAnalysisResult struct {
 	HTMLVersion string
 	Title       string
 
@@ -25,16 +26,20 @@ type PageAnalysis struct {
 	ContainsLoginForm bool
 }
 
-type Analyzer struct {
+type Analyzer interface {
+	AnalyzePage(req PageAnalysisRequest) (*PageAnalysisResult, error)
+}
+
+type DefaultAnalyzer struct {
 	documentProvider func(io.Reader) (*goquery.Document, error)
 }
 
-func NewAnalyzer() *Analyzer {
-	return &Analyzer{
+func NewDefaultAnalyzer() *DefaultAnalyzer {
+	return &DefaultAnalyzer{
 		documentProvider: goquery.NewDocumentFromReader,
 	}
 }
-func (a *Analyzer) ParseHTML(html []byte) (*goquery.Document, error) {
+func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {
 	reader := bytes.NewReader(html)
 	doc, err := a.documentProvider(reader)
 	if err != nil {
@@ -42,22 +47,44 @@ func (a *Analyzer) ParseHTML(html []byte) (*goquery.Document, error) {
 	}
 	return doc, nil
 }
-func (a *Analyzer) AnalyzePage(src PageSource) (*PageAnalysis, error) {
-	doc, err := a.ParseHTML(src.HTML)
+func (a *DefaultAnalyzer) AnalyzePage(req PageAnalysisRequest) (*PageAnalysisResult, error) {
+	doc, err := a.ParseHTML(req.HTML)
 	if err != nil {
 		return nil, err
 	}
-	internal, external, inaccessible, err := extractLinks(doc, src.URL)
-	if err != nil {
-		return nil, err
+	var (
+		res   = &PageAnalysisResult{}
+		wg    sync.WaitGroup
+		links *LinkAnalysisResult
+		lErr  error
+	)
+	wg.Add(5)
+	go func() {
+		defer wg.Done()
+		res.HTMLVersion = detectHTMLVersion(req.HTML)
+	}()
+	go func() {
+		defer wg.Done()
+		res.Title = ExtractTitle(doc)
+	}()
+	go func() {
+		defer wg.Done()
+		res.Headings = countHeadings(doc)
+	}()
+	go func() {
+		defer wg.Done()
+		res.ContainsLoginForm = checkLoginForm(doc)
+	}()
+	go func() {
+		defer wg.Done()
+		links, lErr = extractLinks(doc, req.URL)
+	}()
+	wg.Wait()
+	if lErr != nil {
+		return nil, lErr
 	}
-	return &PageAnalysis{
-		HTMLVersion:       detectHTMLVersion(src.HTML),
-		Title:             ExtractTitle(doc),
-		Headings:          countHeadings(doc),
-		InternalLinks:     internal,
-		ExternalLinks:     external,
-		InaccessibleLinks: inaccessible,
-		ContainsLoginForm: checkLoginForm(doc),
-	}, nil
+	res.InternalLinks = links.Internal
+	res.ExternalLinks = links.External
+	res.InaccessibleLinks = links.Inaccessible
+	return res, nil
 }

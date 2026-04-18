@@ -10,6 +10,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+type LinkAnalysisResult struct {
+	Internal     int
+	External     int
+	Inaccessible int
+}
+
 func isLinkAccessible(link string) bool {
 	client := http.Client{
 		Timeout: 3 * time.Second,
@@ -25,21 +31,18 @@ func isLinkAccessible(link string) bool {
 func extractLinks(
 	doc *goquery.Document,
 	baseURLStr string,
-) (int, int, int, error) {
+) (*LinkAnalysisResult, error) {
 	baseURL, err := url.Parse(baseURLStr)
 	if err != nil {
-		return 0, 0, 0, err
+		return nil, err
 	}
-	internal := 0
-	external := 0
-	inaccessible := 0
+	res := &LinkAnalysisResult{}
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	linkSet := make(map[string]bool)
-
+	sem := make(chan struct{}, 20)
 	doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
 		href, exists := s.Attr("href")
-
 		if !exists {
 			return
 		}
@@ -59,27 +62,27 @@ func extractLinks(
 		if resolved.Host == "" {
 			return
 		}
-
 		fullURL := resolved.String()
 		if resolved.Host == baseURL.Host {
-			internal++
+			res.Internal++
 		} else {
-			external++
+			res.External++
 		}
-
 		if !linkSet[fullURL] {
 			linkSet[fullURL] = true
 			wg.Add(1)
 			go func(l string) {
 				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
 				if !isLinkAccessible(l) {
 					mu.Lock()
-					inaccessible++
+					res.Inaccessible++
 					mu.Unlock()
 				}
 			}(fullURL)
 		}
 	})
 	wg.Wait()
-	return internal, external, inaccessible, nil
+	return res, nil
 }
