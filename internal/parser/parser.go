@@ -53,38 +53,28 @@ func (a *DefaultAnalyzer) AnalyzePage(req PageAnalysisRequest) (*PageAnalysisRes
 		return nil, err
 	}
 	var (
-		res   = &PageAnalysisResult{}
-		wg    sync.WaitGroup
-		links *LinkAnalysisResult
-		lErr  error
+		res = &PageAnalysisResult{}
+		wg  sync.WaitGroup
 	)
-	wg.Add(5)
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		res.HTMLVersion = detectHTMLVersion(req.HTML)
-	}()
-	go func() {
-		defer wg.Done()
 		res.Title = ExtractTitle(doc)
-	}()
-	go func() {
-		defer wg.Done()
 		res.Headings = countHeadings(doc)
-	}()
-	go func() {
-		defer wg.Done()
 		res.ContainsLoginForm = checkLoginForm(doc)
 	}()
 	go func() {
 		defer wg.Done()
-		links, lErr = extractLinks(doc, req.URL)
+		links, lErr := extractLinks(doc, req.URL)
+		if lErr != nil {
+			err = lErr
+			return
+		}
+		res.InternalLinks = links.Internal
+		res.ExternalLinks = links.External
+		res.InaccessibleLinks = links.Inaccessible
 	}()
 	wg.Wait()
-	if lErr != nil {
-		return nil, lErr
-	}
-	res.InternalLinks = links.Internal
-	res.ExternalLinks = links.External
-	res.InaccessibleLinks = links.Inaccessible
-	return res, nil
+	return res, err
 }

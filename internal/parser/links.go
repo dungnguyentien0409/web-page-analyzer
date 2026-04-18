@@ -16,11 +16,18 @@ type LinkAnalysisResult struct {
 	Inaccessible int
 }
 
-func isLinkAccessible(link string) bool {
-	client := http.Client{
-		Timeout: 3 * time.Second,
+var (
+	linkCheckClient = &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20,
+		},
 	}
-	resp, err := client.Head(link)
+)
+
+func isLinkAccessible(link string) bool {
+	resp, err := linkCheckClient.Head(link)
 	if err != nil {
 		return false
 	}
