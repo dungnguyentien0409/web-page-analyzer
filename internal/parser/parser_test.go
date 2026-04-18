@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"errors"
 	"io"
 	"testing"
@@ -34,7 +35,7 @@ func TestAnalyzePage(t *testing.T) {
 	a := NewDefaultAnalyzer()
 	html := []byte(`<html><head><title>Test</title></head><body><form><input type="password"></form></body></html>`)
 	url := "https://test.com"
-	result, err := a.AnalyzePage(PageAnalysisRequest{HTML: html, URL: url})
+	result, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: url})
 	if err != nil {
 		t.Fatalf("AnalyzePage failed: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestAnalyzePage(t *testing.T) {
 func TestAnalyzePage_InvalidURL(t *testing.T) {
 	a := NewDefaultAnalyzer()
 	html := []byte(`<html></html>`)
-	_, err := a.AnalyzePage(PageAnalysisRequest{HTML: html, URL: " %%%% "})
+	_, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: " %%%% "})
 	if err == nil {
 		t.Error("expected error for invalid base URL")
 	}
@@ -59,7 +60,7 @@ func TestAnalyzePage_ParseError(t *testing.T) {
 			return nil, errors.New("parse error")
 		},
 	}
-	_, err := a.AnalyzePage(PageAnalysisRequest{HTML: []byte("<html>"), URL: "https://test.com"})
+	_, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: []byte("<html>"), URL: "https://test.com"})
 	if err == nil {
 		t.Error("expected error from ParseHTML")
 	}

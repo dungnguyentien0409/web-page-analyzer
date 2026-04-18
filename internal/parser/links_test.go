@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -32,7 +33,7 @@ func TestExtractLinks(t *testing.T) {
 		<input href="/not-an-a-tag">
 	`
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(html))
-	res, err := extractLinks(doc, baseURL)
+	res, err := extractLinks(context.TODO(), doc, baseURL)
 	if err != nil {
 		t.Fatalf("extractLinks failed: %v", err)
 	}
@@ -47,13 +48,13 @@ func TestExtractLinks(t *testing.T) {
 	}
 }
 func TestIsLinkAccessible_Fail(t *testing.T) {
-	if isLinkAccessible("http://non-existent-domain-12345.com") {
+	if isLinkAccessible(context.TODO(), "http://non-existent-domain-12345.com") {
 		t.Error("expected false for invalid domain")
 	}
 }
 func TestExtractLinks_InvalidURL(t *testing.T) {
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(""))
-	_, err := extractLinks(doc, " %%%% ")
+	_, err := extractLinks(context.TODO(), doc, " %%%% ")
 	if err == nil {
 		t.Error("expected error for invalid URL")
 	}

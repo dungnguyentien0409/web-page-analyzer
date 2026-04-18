@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,8 +27,12 @@ var (
 	}
 )
 
-func isLinkAccessible(link string) bool {
-	resp, err := linkCheckClient.Head(link)
+func isLinkAccessible(ctx context.Context, link string) bool {
+	req, err := http.NewRequestWithContext(ctx, "HEAD", link, nil)
+	if err != nil {
+		return false
+	}
+	resp, err := linkCheckClient.Do(req)
 	if err != nil {
 		return false
 	}
@@ -36,6 +41,7 @@ func isLinkAccessible(link string) bool {
 }
 
 func extractLinks(
+	ctx context.Context,
 	doc *goquery.Document,
 	baseURLStr string,
 ) (*LinkAnalysisResult, error) {
@@ -82,7 +88,7 @@ func extractLinks(
 				defer wg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
-				if !isLinkAccessible(l) {
+				if !isLinkAccessible(ctx, l) {
 					mu.Lock()
 					res.Inaccessible++
 					mu.Unlock()

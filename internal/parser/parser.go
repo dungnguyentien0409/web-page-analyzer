@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"sync"
 
@@ -27,7 +28,7 @@ type PageAnalysisResult struct {
 }
 
 type Analyzer interface {
-	AnalyzePage(req PageAnalysisRequest) (*PageAnalysisResult, error)
+	AnalyzePage(ctx context.Context, req PageAnalysisRequest) (*PageAnalysisResult, error)
 }
 
 type DefaultAnalyzer struct {
@@ -47,7 +48,7 @@ func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {
 	}
 	return doc, nil
 }
-func (a *DefaultAnalyzer) AnalyzePage(req PageAnalysisRequest) (*PageAnalysisResult, error) {
+func (a *DefaultAnalyzer) AnalyzePage(ctx context.Context, req PageAnalysisRequest) (*PageAnalysisResult, error) {
 	doc, err := a.ParseHTML(req.HTML)
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func (a *DefaultAnalyzer) AnalyzePage(req PageAnalysisRequest) (*PageAnalysisRes
 	}()
 	go func() {
 		defer wg.Done()
-		links, lErr := extractLinks(doc, req.URL)
+		links, lErr := extractLinks(ctx, doc, req.URL)
 		if lErr != nil {
 			err = lErr
 			return

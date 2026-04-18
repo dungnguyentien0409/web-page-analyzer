@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -9,7 +10,7 @@ import (
 )
 
 type Fetcher interface {
-	Fetch(url string) ([]byte, error)
+	Fetch(ctx context.Context, url string) ([]byte, error)
 }
 type DefaultFetcher struct {
 	client *http.Client
@@ -35,8 +36,8 @@ func NewDefaultFetcher() *DefaultFetcher {
 		},
 	}
 }
-func (f *DefaultFetcher) Fetch(urlStr string) ([]byte, error) {
-	req, err := http.NewRequest("GET", urlStr, nil)
+func (f *DefaultFetcher) Fetch(ctx context.Context, urlStr string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
@@ -11,13 +12,20 @@ import (
 )
 
 func main() {
+	const requestTimeout = 15 * time.Second
+
 	tmpl := template.Must(
 		template.ParseFiles("web/templates/index.html"),
 	)
 
 	fetcherSvc := fetcher.NewDefaultFetcher()
 	analyzer := parser.NewDefaultAnalyzer()
-	h := handler.NewHandler(tmpl, fetcherSvc, analyzer)
+	h := handler.NewHandler(handler.HandlerConfig{
+		Template:       tmpl,
+		Fetcher:        fetcherSvc,
+		Analyzer:       analyzer,
+		RequestTimeout: requestTimeout,
+	})
 
 	http.HandleFunc("/", h.IndexHandler)
 	http.HandleFunc("/analyze", h.AnalyzeHandler)

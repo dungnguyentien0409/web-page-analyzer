@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +25,7 @@ func TestFetchURL_Success(t *testing.T) {
 	)
 	defer server.Close()
 	f := NewDefaultFetcher()
-	body, err := f.Fetch(server.URL)
+	body, err := f.Fetch(context.TODO(), server.URL)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -41,14 +42,14 @@ func TestFetchURL_HTTPErrorStatus(t *testing.T) {
 	)
 	defer server.Close()
 	f := NewDefaultFetcher()
-	_, err := f.Fetch(server.URL)
+	_, err := f.Fetch(context.TODO(), server.URL)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 func TestFetchURL_InvalidURL(t *testing.T) {
 	f := NewDefaultFetcher()
-	_, err := f.Fetch("://bad-url")
+	_, err := f.Fetch(context.TODO(), "://bad-url")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -70,7 +71,7 @@ func TestFetchURL_ReadError(t *testing.T) {
 	)
 	defer server.Close()
 	f := NewDefaultFetcher()
-	_, err := f.Fetch(server.URL)
+	_, err := f.Fetch(context.TODO(), server.URL)
 	if err == nil {
 		t.Fatal("expected read error")
 	}

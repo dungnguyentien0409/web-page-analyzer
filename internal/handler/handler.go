@@ -2,24 +2,35 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
-type Handler struct {
-	tmpl        *template.Template
-	fetcher     fetcher.Fetcher
-	analyzePage func(parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error)
+type HandlerConfig struct {
+	Template       *template.Template
+	Fetcher        fetcher.Fetcher
+	Analyzer       parser.Analyzer
+	RequestTimeout time.Duration
 }
 
-func NewHandler(t *template.Template, f fetcher.Fetcher, a parser.Analyzer) *Handler {
+type Handler struct {
+	tmpl           *template.Template
+	fetcher        fetcher.Fetcher
+	analyzePage    func(context.Context, parser.PageAnalysisRequest) (*parser.PageAnalysisResult, error)
+	requestTimeout time.Duration
+}
+
+func NewHandler(cfg HandlerConfig) *Handler {
 	return &Handler{
-		tmpl:        t,
-		fetcher:     f,
-		analyzePage: a.AnalyzePage,
+		tmpl:           cfg.Template,
+		fetcher:        cfg.Fetcher,
+		analyzePage:    cfg.Analyzer.AnalyzePage,
+		requestTimeout: cfg.RequestTimeout,
 	}
 }
 func (h *Handler) render(w http.ResponseWriter, data any) {
@@ -43,12 +54,15 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is required", http.StatusBadRequest)
 		return
 	}
-	htmlContent, err := h.fetcher.Fetch(urlInput)
+	ctx, cancel := context.WithTimeout(r.Context(), h.requestTimeout)
+	defer cancel()
+
+	htmlContent, err := h.fetcher.Fetch(ctx, urlInput)
 	if err != nil {
 		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
-	analysis, err := h.analyzePage(parser.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
+	analysis, err := h.analyzePage(ctx, parser.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
 		h.render(w, map[string]any{"Error": "Failed to parse HTML"})
 		return
