@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
 func main() {
@@ -13,10 +14,11 @@ func main() {
 		template.ParseFiles("web/templates/index.html"),
 	)
 
-	handler.SetTemplate(tmpl)
+	analyzer := parser.NewAnalyzer()
+	h := handler.NewHandler(tmpl, analyzer)
 
-	http.HandleFunc("/", handler.IndexHandler)
-	http.HandleFunc("/analyze", handler.AnalyzeHandler)
+	http.HandleFunc("/", h.IndexHandler)
+	http.HandleFunc("/analyze", h.AnalyzeHandler)
 
 	http.Handle("/static/",
 		http.StripPrefix("/static/",

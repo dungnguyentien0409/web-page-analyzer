@@ -9,185 +9,112 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PuerkitoBio/goquery"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
-func setupTestTemplate() {
-	testTemplate := template.Must(
+func setupTestHandler() *Handler {
+	t := template.Must(
 		template.New("test").Parse(`
 <html>
-<body>
-{{.Result}}
+<body>{{if .Result}}Page title: {{.Result.Title}}{{end}}{{if .Error}}{{.Error}}{{end}}
 </body>
 </html>
 `),
 	)
-	SetTemplate(testTemplate)
+	return NewHandler(t, parser.NewAnalyzer())
 }
-
 func TestIndexHandler(t *testing.T) {
-	setupTestTemplate()
-
-	req := httptest.NewRequest(http.MethodGet,"/",nil)
-
+	h := setupTestHandler()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
-
-	IndexHandler(rr,req)
-
+	h.IndexHandler(rr, req)
 	if rr.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d",http.StatusOK,rr.Code)
+		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)
 	}
 }
-
 func TestAnalyzeHandler_MethodNotAllowed(t *testing.T) {
-	setupTestTemplate()
-
-	req := httptest.NewRequest(http.MethodGet,"/analyze",nil)
-
+	h := setupTestHandler()
+	req := httptest.NewRequest(http.MethodGet, "/analyze", nil)
 	rr := httptest.NewRecorder()
-
-	AnalyzeHandler(rr,req)
-
+	h.AnalyzeHandler(rr, req)
 	if rr.Code != http.StatusMethodNotAllowed {
-		t.Errorf("expected status %d, got %d",http.StatusMethodNotAllowed,rr.Code)
+		t.Errorf("expected status %d, got %d", http.StatusMethodNotAllowed, rr.Code)
 	}
 }
-
 func TestAnalyzeHandler_EmptyURL(t *testing.T) {
-	setupTestTemplate()
-
+	h := setupTestHandler()
 	form := url.Values{}
-	form.Add("url","")
-
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/analyze",
-		strings.NewReader(form.Encode()),
-	)
-
-	req.Header.Set(
-		"Content-Type",
-		"application/x-www-form-urlencoded",
-	)
-
+	form.Add("url", "")
+	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-
-	AnalyzeHandler(rr,req)
-
-	if !strings.Contains(rr.Body.String(),"URL is required") {
+	h.AnalyzeHandler(rr, req)
+	if !strings.Contains(rr.Body.String(), "URL is required") {
 		t.Errorf("expected URL error message")
 	}
 }
-
 func TestAnalyzeHandler_FetchError(t *testing.T) {
-	setupTestTemplate()
-
-	fetchURL = func(url string) ([]byte,error) {
-		return nil,fmt.Errorf("fetch failed")
+	h := setupTestHandler()
+	h.fetchURL = func(url string) ([]byte, error) {
+		return nil, fmt.Errorf("fetch failed")
 	}
-
-	defer func() {
-		fetchURL = fetcher.FetchURL
-	}()
-
 	form := url.Values{}
-	form.Add("url","https://example.com")
-
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/analyze",
-		strings.NewReader(form.Encode()),
-	)
-
-	req.Header.Set(
-		"Content-Type",
-		"application/x-www-form-urlencoded",
-	)
-
+	form.Add("url", "https://example.com")
+	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-
-	AnalyzeHandler(rr,req)
-
-	if !strings.Contains(rr.Body.String(),"fetch failed") {
+	h.AnalyzeHandler(rr, req)
+	if !strings.Contains(rr.Body.String(), "fetch failed") {
 		t.Errorf("expected fetch error message")
 	}
 }
-
 func TestAnalyzeHandler_ParseError(t *testing.T) {
-	setupTestTemplate()
-
-	fetchURL = func(url string) ([]byte,error) {
-		return []byte("<html>"),nil
+	h := setupTestHandler()
+	h.fetchURL = func(url string) ([]byte, error) {
+		return []byte("<html>"), nil
 	}
-
-	parseHTML = func(html []byte) (*goquery.Document,error) {
-		return nil,fmt.Errorf("parse failed")
+	h.analyzePage = func(src parser.PageSource) (*parser.PageAnalysis, error) {
+		return nil, fmt.Errorf("analysis failed")
 	}
-
-	defer func() {
-		fetchURL = fetcher.FetchURL
-		parseHTML = parser.ParseHTML
-	}()
-
 	form := url.Values{}
-	form.Add("url","https://example.com")
-
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/analyze",
-		strings.NewReader(form.Encode()),
-	)
-
-	req.Header.Set(
-		"Content-Type",
-		"application/x-www-form-urlencoded",
-	)
-
+	form.Add("url", "https://example.com")
+	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-
-	AnalyzeHandler(rr,req)
-
-	if !strings.Contains(rr.Body.String(),"Failed to parse HTML") {
+	h.AnalyzeHandler(rr, req)
+	if !strings.Contains(rr.Body.String(), "Failed to parse HTML") {
 		t.Errorf("expected parse error message")
 	}
 }
-
 func TestAnalyzeHandler_Success(t *testing.T) {
-	setupTestTemplate()
-
-	fetchURL = func(url string) ([]byte,error) {
-		return []byte("<html><head><title>Test</title></head><body></body></html>"),nil
+	h := setupTestHandler()
+	h.fetchURL = func(url string) ([]byte, error) {
+		return []byte("<html><head><title>Test</title></head><body></body></html>"), nil
 	}
-
-	defer func() {
-		fetchURL = fetcher.FetchURL
-	}()
-
 	form := url.Values{}
-	form.Add("url","https://example.com")
-
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/analyze",
-		strings.NewReader(form.Encode()),
-	)
-
-	req.Header.Set(
-		"Content-Type",
-		"application/x-www-form-urlencoded",
-	)
-
+	form.Add("url", "https://example.com")
+	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-
-	AnalyzeHandler(rr,req)
-
+	h.AnalyzeHandler(rr, req)
 	if rr.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d",http.StatusOK,rr.Code)
+		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)
 	}
-
-	if !strings.Contains(rr.Body.String(),"Page title: Test") {
+	if !strings.Contains(rr.Body.String(), "Page title: Test") {
 		t.Errorf("expected title in response")
+	}
+}
+func TestAnalyzeHandler_TemplateError(t *testing.T) {
+	h := setupTestHandler()
+	h.tmpl = template.Must(template.New("error").Option("missingkey=error").Parse("{{.InvalidField}}"))
+	h.fetchURL = func(url string) ([]byte, error) {
+		return []byte("<html></html>"), nil
+	}
+	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader("url=https://example.com"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	h.AnalyzeHandler(rr, req)
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", rr.Code)
 	}
 }

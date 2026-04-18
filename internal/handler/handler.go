@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 
@@ -9,56 +8,49 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/parser"
 )
 
-var tmpl *template.Template
-var fetchURL = fetcher.FetchURL
-var parseHTML = parser.ParseHTML
-
-func SetTemplate(t *template.Template) {
-	tmpl = t
+type Handler struct {
+	tmpl        *template.Template
+	fetchURL    func(string) ([]byte, error)
+	analyzePage func(parser.PageSource) (*parser.PageAnalysis, error)
 }
 
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl.Execute(w,nil)
+func NewHandler(t *template.Template, a *parser.Analyzer) *Handler {
+	return &Handler{
+		tmpl:        t,
+		fetchURL:    fetcher.FetchURL,
+		analyzePage: a.AnalyzePage,
+	}
 }
-
-func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
+	if err := h.tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w,"Method not allowed",http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-
-	url := r.FormValue("url")
-
-	if url == "" {
-		tmpl.Execute(w,map[string]string{
-			"Result":"URL is required",
-		})
+	urlInput := r.FormValue("url")
+	if urlInput == "" {
+		http.Error(w, "URL is required", http.StatusBadRequest)
 		return
 	}
-
-	html, err := fetchURL(url)
-
+	htmlContent, err := h.fetchURL(urlInput)
 	if err != nil {
-		tmpl.Execute(w,map[string]string{
-			"Result":err.Error(),
-		})
+		h.tmpl.Execute(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
-
-	doc, err := parseHTML(html)
-
+	analysis, err := h.analyzePage(parser.PageSource{HTML: htmlContent, URL: urlInput})
 	if err != nil {
-		tmpl.Execute(w,map[string]string{
-			"Result":"Failed to parse HTML",
-		})
+		h.tmpl.Execute(w, map[string]any{"Error": "Failed to parse HTML"})
 		return
 	}
-
-	title := parser.ExtractTitle(doc)
-
-	result := fmt.Sprintf("Page title: %s",title)
-
-	tmpl.Execute(w,map[string]string{
-		"Result":result,
+	err = h.tmpl.Execute(w, map[string]any{
+		"Result": analysis,
 	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
