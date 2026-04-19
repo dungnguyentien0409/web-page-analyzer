@@ -1,4 +1,4 @@
-.PHONY: build docker-build run docker-run unit integration coverage bench lint clean
+.PHONY: build docker-build run docker-run unit integration coverage bench lint clean docker-compose-up
 
 BINARY_DIR=bin
 BINARY_NAME=$(BINARY_DIR)/analyzer
@@ -56,3 +56,6 @@ clean:
 	@echo "Cleaning up..."
 	rm -f $(BINARY_NAME)
 	rm -f cover.out
+
+docker-compose-up:
+	docker compose up --build

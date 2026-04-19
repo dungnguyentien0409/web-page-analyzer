@@ -1,10 +1,10 @@
 module github.com/dungnguyentien0409/web-page-analyzer
 
-go 1.25.0
+go 1.23.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.1
-	golang.org/x/time v0.15.0
+	golang.org/x/time v0.10.0
 )
 
 require (
