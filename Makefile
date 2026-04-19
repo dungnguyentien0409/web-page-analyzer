@@ -27,7 +27,17 @@ unit:
 
 integration:
 	@echo "Running integration tests..."
-	go test ./test/integration/...
+	@echo "Select an integration test to run:"
+	@echo "1. All integration tests"
+	@echo "2. TestAnalyzeIntegration"
+	@echo "3. TestRateLimiterIntegration"
+	@read -p "Enter your choice: " choice; \
+	case $$choice in \
+		1) go test ./test/integration/... ;; \
+		2) go test ./test/integration/... -run TestAnalyzeIntegration ;; \
+		3) go test ./test/integration/... -run TestRateLimiterIntegration ;; \
+		*) echo "Invalid choice." ;; \
+	esac
 
 coverage:
 	@echo "Running unit tests with coverage report..."

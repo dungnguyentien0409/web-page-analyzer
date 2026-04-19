@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"sync"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -11,22 +13,30 @@ type Collector struct {
 	linksChecked     *prometheus.CounterVec
 }
 
+var (
+	instance *Collector
+	once     sync.Once
+)
+
 func NewCollector() *Collector {
-	return &Collector{
-		analysisTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "web_analyzer_analysis_requests_total",
-			Help: "Total number of page analysis requests",
-		}, []string{"status"}),
-		analysisDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "web_analyzer_analysis_duration_seconds",
-			Help:    "Duration of page analysis in seconds",
-			Buckets: prometheus.DefBuckets,
-		}, []string{"status"}),
-		linksChecked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "web_analyzer_links_checked_total",
-			Help: "Total number of links checked",
-		}, []string{"accessible"}),
-	}
+	once.Do(func() {
+		instance = &Collector{
+			analysisTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+				Name: "web_analyzer_analysis_requests_total",
+				Help: "Total number of page analysis requests",
+			}, []string{"status"}),
+			analysisDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+				Name:    "web_analyzer_analysis_duration_seconds",
+				Help:    "Duration of page analysis in seconds",
+				Buckets: prometheus.DefBuckets,
+			}, []string{"status"}),
+			linksChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+				Name: "web_analyzer_links_checked_total",
+				Help: "Total number of links checked",
+			}, []string{"accessible"}),
+		}
+	})
+	return instance
 }
 
 func (c *Collector) IncAnalysisTotal(status string) {

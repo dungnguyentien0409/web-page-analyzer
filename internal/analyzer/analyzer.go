@@ -12,12 +12,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type PageAnalysisRequest struct {
+type AnalysisRequest struct {
 	HTML []byte
 	URL  string
 }
 
-type PageAnalysisResult struct {
+type AnalysisResult struct {
 	HTMLVersion string
 	Title       string
 
@@ -31,7 +31,7 @@ type PageAnalysisResult struct {
 }
 
 type Analyzer interface {
-	AnalyzePage(ctx context.Context, req PageAnalysisRequest) (*PageAnalysisResult, error)
+	AnalyzePage(ctx context.Context, req AnalysisRequest) (*AnalysisResult, error)
 }
 
 type AnalyzerConfig struct {
@@ -66,14 +66,14 @@ func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {
 	}
 	return doc, nil
 }
-func (a *DefaultAnalyzer) AnalyzePage(ctx context.Context, req PageAnalysisRequest) (*PageAnalysisResult, error) {
+func (a *DefaultAnalyzer) AnalyzePage(ctx context.Context, req AnalysisRequest) (*AnalysisResult, error) {
 	a.logger.Info("analyzing page", "url", req.URL)
 	doc, err := a.ParseHTML(req.HTML)
 	if err != nil {
 		return nil, err
 	}
 	var (
-		res = &PageAnalysisResult{}
+		res = &AnalysisResult{}
 		wg  sync.WaitGroup
 	)
 	wg.Add(2)

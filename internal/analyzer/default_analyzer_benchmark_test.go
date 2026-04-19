@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 )
 
 func BenchmarkAnalyzePage(b *testing.B) {
@@ -16,10 +18,12 @@ func BenchmarkAnalyzePage(b *testing.B) {
 	}))
 	defer ts.Close()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  1,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	html := "<html><head><title>Bench</title></head><body>"
 	for i := 0; i < 50; i++ {
@@ -27,7 +31,7 @@ func BenchmarkAnalyzePage(b *testing.B) {
 		html += fmt.Sprintf("<a href=\"%s/%d\">Link %d</a>", ts.URL, i, i)
 	}
 	html += "</body></html>"
-	req := PageAnalysisRequest{
+	req := AnalysisRequest{
 		HTML: []byte(html),
 		URL:  ts.URL,
 	}

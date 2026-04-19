@@ -25,7 +25,7 @@ type HandlerConfig struct {
 type Handler struct {
 	tmpl           *template.Template
 	fetcher        fetcher.Fetcher
-	analyzePage    func(context.Context, analyzer.PageAnalysisRequest) (*analyzer.PageAnalysisResult, error)
+	analyzePage    func(context.Context, analyzer.AnalysisRequest) (*analyzer.AnalysisResult, error)
 	requestTimeout time.Duration
 	logger         *slog.Logger
 	metrics        *metrics.Collector
@@ -81,7 +81,7 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
-	analysis, err := h.analyzePage(ctx, analyzer.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
+	analysis, err := h.analyzePage(ctx, analyzer.AnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
 		status = "analysis_error"
 		h.logger.Error("analysis error in handler", "url", urlInput, "error", err)

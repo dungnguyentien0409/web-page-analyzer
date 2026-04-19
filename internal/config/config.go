@@ -6,9 +6,11 @@ import (
 )
 
 type Config struct {
-	RequestTimeoutSeconds int `json:"request_timeout_seconds"`
-	LinkCheckWorkers      int `json:"link_check_workers"`
-	LinkCheckRetries      int `json:"link_check_retries"`
+	RequestTimeoutSeconds int     `json:"request_timeout_seconds"`
+	LinkCheckWorkers      int     `json:"link_check_workers"`
+	LinkCheckRetries      int     `json:"link_check_retries"`
+	RateLimitRPS          float64 `json:"rate_limit_rps"`
+	RateLimitBurst        int     `json:"rate_limit_burst"`
 }
 
 func Load(path string) (*Config, error) {

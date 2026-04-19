@@ -1,5 +1,7 @@
 {
   "request_timeout_seconds": 15,
   "link_check_workers": 20,
-  "link_check_retries": 3
+  "link_check_retries": 3,
+  "rate_limit_rps": 2.0,
+  "rate_limit_burst": 5
 }

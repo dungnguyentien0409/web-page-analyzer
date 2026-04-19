@@ -17,7 +17,7 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 )
 
-func TestAnalyze_Integration(t *testing.T) {
+func TestAnalyzeIntegration(t *testing.T) {
 	externalServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/broken" {
 			w.WriteHeader(http.StatusNotFound)

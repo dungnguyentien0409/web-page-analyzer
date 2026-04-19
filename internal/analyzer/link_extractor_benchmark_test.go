@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -19,10 +20,12 @@ func BenchmarkExtractLinks(b *testing.B) {
 	}))
 	defer ts.Close()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  1,
 		WorkerCount: 50,
+		Metrics:     mc,
 	})
 	var sb strings.Builder
 	sb.WriteString("<html><body>")

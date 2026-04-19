@@ -13,8 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 )
 
 type mockFetcher struct {
@@ -23,6 +24,14 @@ type mockFetcher struct {
 
 func (m *mockFetcher) Fetch(ctx context.Context, url string) ([]byte, error) {
 	return m.fn(ctx, url)
+}
+
+type errorResponseWriter struct {
+	httptest.ResponseRecorder
+}
+
+func (e *errorResponseWriter) Write(b []byte) (int, error) {
+	return 0, fmt.Errorf("write error")
 }
 func setupTestHandler() *Handler {
 	t := template.Must(
@@ -34,6 +43,7 @@ func setupTestHandler() *Handler {
 `),
 	)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	return NewHandler(HandlerConfig{
 		Template: t,
 		Fetcher:  fetcher.NewDefaultFetcher(logger),
@@ -41,9 +51,11 @@ func setupTestHandler() *Handler {
 			Logger:      logger,
 			RetryCount:  3,
 			WorkerCount: 20,
+			Metrics:     mc,
 		}),
 		RequestTimeout: 5 * time.Second,
 		Logger:         logger,
+		Metrics:        mc,
 	})
 }
 func TestIndexHandler(t *testing.T) {
@@ -96,7 +108,7 @@ func TestAnalyzeHandler_ParseError(t *testing.T) {
 	h.fetcher = &mockFetcher{fn: func(ctx context.Context, url string) ([]byte, error) {
 		return []byte("<html>"), nil
 	}}
-	h.analyzePage = func(ctx context.Context, req analyzer.PageAnalysisRequest) (*analyzer.PageAnalysisResult, error) {
+	h.analyzePage = func(ctx context.Context, req analyzer.AnalysisRequest) (*analyzer.AnalysisResult, error) {
 		return nil, fmt.Errorf("analysis failed")
 	}
 	form := url.Values{}
@@ -140,4 +152,14 @@ func TestAnalyzeHandler_TemplateError(t *testing.T) {
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("expected status 500, got %d", rr.Code)
 	}
+}
+func TestAnalyzeHandler_WriteError(t *testing.T) {
+	h := setupTestHandler()
+	h.fetcher = &mockFetcher{fn: func(ctx context.Context, url string) ([]byte, error) {
+		return []byte("<html></html>"), nil
+	}}
+	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader("url=https://example.com"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ew := &errorResponseWriter{*httptest.NewRecorder()}
+	h.AnalyzeHandler(ew, req)
 }

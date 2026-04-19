@@ -165,3 +165,15 @@ func TestExtractLinks_InvalidURL(t *testing.T) {
 		t.Error("expected error for invalid URL")
 	}
 }
+func TestIsLinkAccessible_EmptyResponse(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a := NewDefaultAnalyzer(AnalyzerConfig{
+		Logger:      logger,
+		RetryCount:  1,
+		WorkerCount: 1,
+	})
+	// URL không hợp lệ nhưng qua được bước tạo Request
+	if a.isLinkAccessible(context.TODO(), "http://") {
+		t.Error("expected false for empty host")
+	}
+}

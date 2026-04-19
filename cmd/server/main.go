@@ -10,12 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/config"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -48,16 +50,21 @@ func main() {
 		Logger:         logger,
 		Metrics:        mc,
 	})
-	http.HandleFunc("/", h.IndexHandler)
-	http.HandleFunc("/analyze", h.AnalyzeHandler)
-	http.Handle("/metrics", promhttp.Handler())
-	http.Handle("/static/",
+
+	limiter := middleware.NewIPRateLimiter(rate.Limit(cfg.RateLimitRPS), cfg.RateLimitBurst)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", h.IndexHandler)
+	mux.HandleFunc("/analyze", h.AnalyzeHandler)
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/static/",
 		http.StripPrefix("/static/",
 			http.FileServer(http.Dir("web/static")),
 		),
 	)
+
 	srv := &http.Server{
-		Addr: ":8080",
+		Addr:    ":8080",
+		Handler: limiter.Middleware(mux),
 	}
 	go func() {
 		logger.Info("Server running", "addr", ":8080", "url", "http://localhost:8080")

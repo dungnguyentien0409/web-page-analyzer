@@ -7,15 +7,19 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+
 	"github.com/PuerkitoBio/goquery"
 )
 
 func TestParseHTML_Success(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	html := []byte("<html><head><title>Test</title></head></html>")
 	doc, err := a.ParseHTML(html)
@@ -28,8 +32,10 @@ func TestParseHTML_Success(t *testing.T) {
 }
 func TestParseHTML_Error(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := &DefaultAnalyzer{
-		logger: logger,
+		logger:  logger,
+		metrics: mc,
 		documentProvider: func(r io.Reader) (*goquery.Document, error) {
 			return nil, errors.New("parse error")
 		},
@@ -41,14 +47,16 @@ func TestParseHTML_Error(t *testing.T) {
 }
 func TestAnalyzePage(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	html := []byte(`<html><head><title>Test</title></head><body><form><input type="password"></form></body></html>`)
 	url := "https://test.com"
-	result, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: url})
+	result, err := a.AnalyzePage(context.TODO(), AnalysisRequest{HTML: html, URL: url})
 	if err != nil {
 		t.Fatalf("AnalyzePage failed: %v", err)
 	}
@@ -61,26 +69,30 @@ func TestAnalyzePage(t *testing.T) {
 }
 func TestAnalyzePage_InvalidURL(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	html := []byte(`<html></html>`)
-	_, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: html, URL: " %%%% "})
+	_, err := a.AnalyzePage(context.TODO(), AnalysisRequest{HTML: html, URL: " %%%% "})
 	if err == nil {
 		t.Error("expected error for invalid base URL")
 	}
 }
 func TestAnalyzePage_ParseError(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := &DefaultAnalyzer{
-		logger: logger,
+		logger:  logger,
+		metrics: mc,
 		documentProvider: func(r io.Reader) (*goquery.Document, error) {
 			return nil, errors.New("parse error")
 		},
 	}
-	_, err := a.AnalyzePage(context.TODO(), PageAnalysisRequest{HTML: []byte("<html>"), URL: "https://test.com"})
+	_, err := a.AnalyzePage(context.TODO(), AnalysisRequest{HTML: []byte("<html>"), URL: "https://test.com"})
 	if err == nil {
 		t.Error("expected error from ParseHTML")
 	}
