@@ -43,7 +43,9 @@ func (h *Handler) render(w http.ResponseWriter, data any) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(buf.Bytes())
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		h.logger.Error("failed to write response", "error", err)
+	}
 }
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	h.render(w, nil)

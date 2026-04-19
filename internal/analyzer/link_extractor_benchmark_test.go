@@ -27,10 +27,10 @@ func BenchmarkExtractLinks(b *testing.B) {
 	var sb strings.Builder
 	sb.WriteString("<html><body>")
 	for i := 0; i < 200; i++ {
-		sb.WriteString(fmt.Sprintf("<a href=\"%s/%d\">External Link %d</a>", ts.URL, i, i))
-		sb.WriteString(fmt.Sprintf("<a href=\"/internal/%d\">Internal Link %d</a>", i, i))
+		fmt.Fprintf(&sb, "<a href=\"%s/%d\">External Link %d</a>", ts.URL, i, i)
+		fmt.Fprintf(&sb, "<a href=\"/internal/%d\">Internal Link %d</a>", i, i)
 	}
-	sb.WriteString("</body></html>")
+	sb.WriteString("</body></html>") // staticcheck: QF1012
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(sb.String()))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

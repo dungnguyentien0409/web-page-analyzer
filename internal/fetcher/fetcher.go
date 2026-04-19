@@ -51,7 +51,9 @@ func (f *DefaultFetcher) Fetch(ctx context.Context, urlStr string) ([]byte, erro
 		f.logger.Error("fetch failed", "url", urlStr, "error", err)
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		f.logger.Warn("bad status code", "url", urlStr, "status", resp.StatusCode)
 		return nil, fmt.Errorf("HTTP error: %d %s", resp.StatusCode, resp.Status)

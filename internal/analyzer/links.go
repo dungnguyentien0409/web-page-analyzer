@@ -40,7 +40,7 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 			break
 		}
 		if resp != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 		if ctx.Err() != nil {
 			return false
@@ -50,7 +50,9 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	return resp.StatusCode >= 200 && resp.StatusCode < 400
 }
 

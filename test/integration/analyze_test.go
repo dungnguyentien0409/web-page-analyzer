@@ -36,7 +36,7 @@ func TestAnalyze_Integration(t *testing.T) {
 		content = strings.ReplaceAll(content, "http://external-valid.com", externalServer.URL+"/valid")
 		content = strings.ReplaceAll(content, "http://external-broken", externalServer.URL+"/broken")
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(content))
+		_, _ = w.Write([]byte(content))
 	}))
 	defer targetServer.Close()
 	tmpl, err := template.ParseFiles("../../web/templates/index.html")
@@ -69,14 +69,16 @@ func TestAnalyze_Integration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to send request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("expected status OK, got %v", resp.Status)
 		}
 		body, _ := io.ReadAll(resp.Body)
 		bodyStr := string(body)
-		if !strings.Contains(bodyStr, "Full Integration Test") {
-			t.Error("response missing page title")
+		if !strings.Contains(bodyStr, "Full Integration Test") { // Check for title
+			t.Errorf("response missing page title. Body: %s", bodyStr)
 		}
 		if !strings.Contains(bodyStr, "HTML5") {
 			t.Error("response missing HTML version")
@@ -107,7 +109,9 @@ func TestAnalyze_Integration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to send request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		body, _ := io.ReadAll(resp.Body)
 		bodyStr := string(body)
 		if !strings.Contains(bodyStr, "Could not reach the URL") {

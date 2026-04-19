@@ -2,7 +2,6 @@ package fetcher
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,19 +9,11 @@ import (
 	"testing"
 )
 
-type errorReader struct{}
-
-func (e errorReader) Read(p []byte) (int, error) {
-	return 0, errors.New("read error")
-}
-func (e errorReader) Close() error {
-	return nil
-}
 func TestFetchURL_Success(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("test response"))
+			_, _ = w.Write([]byte("test response"))
 		}),
 	)
 	defer server.Close()
@@ -77,7 +68,9 @@ func TestFetchURL_ReadError(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				t.Logf("error closing connection: %v", err)
+			}
 		}),
 	)
 	defer server.Close()
