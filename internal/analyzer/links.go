@@ -103,6 +103,8 @@ func (a *DefaultAnalyzer) extractLinks(
 		if resolved.Host == "" {
 			return
 		}
+
+		resolved.Fragment = ""
 		fullURL := resolved.String()
 		if !linkSet[fullURL] {
 			linkSet[fullURL] = true
