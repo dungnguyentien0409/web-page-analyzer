@@ -10,10 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/config"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -29,12 +31,14 @@ func main() {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+	mc := metrics.NewCollector()
 	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
 	fetcherSvc := fetcher.NewDefaultFetcher(logger)
 	analyzerSvc := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  cfg.LinkCheckRetries,
 		WorkerCount: cfg.LinkCheckWorkers,
+		Metrics:     mc,
 	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
@@ -42,9 +46,11 @@ func main() {
 		Analyzer:       analyzerSvc,
 		RequestTimeout: time.Duration(cfg.RequestTimeoutSeconds) * time.Second,
 		Logger:         logger,
+		Metrics:        mc,
 	})
 	http.HandleFunc("/", h.IndexHandler)
 	http.HandleFunc("/analyze", h.AnalyzeHandler)
+	http.Handle("/metrics", promhttp.Handler())
 	http.Handle("/static/",
 		http.StripPrefix("/static/",
 			http.FileServer(http.Dir("web/static")),

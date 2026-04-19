@@ -40,7 +40,7 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 			break
 		}
 		if resp != nil {
-			_ = resp.Body.Close()
+			resp.Body.Close()
 		}
 		if ctx.Err() != nil {
 			return false
@@ -50,9 +50,7 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 	if err != nil {
 		return false
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	defer resp.Body.Close()
 	return resp.StatusCode >= 200 && resp.StatusCode < 400
 }
 
@@ -103,8 +101,6 @@ func (a *DefaultAnalyzer) extractLinks(
 		if resolved.Host == "" {
 			return
 		}
-
-		resolved.Fragment = ""
 		fullURL := resolved.String()
 		if !linkSet[fullURL] {
 			linkSet[fullURL] = true

@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -36,6 +38,7 @@ type AnalyzerConfig struct {
 	Logger      *slog.Logger
 	RetryCount  int
 	WorkerCount int
+	Metrics     *metrics.Collector
 }
 
 type DefaultAnalyzer struct {
@@ -43,6 +46,7 @@ type DefaultAnalyzer struct {
 	logger           *slog.Logger
 	retryCount       int
 	workerCount      int
+	metrics          *metrics.Collector
 }
 
 func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
@@ -51,6 +55,7 @@ func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
 		documentProvider: goquery.NewDocumentFromReader,
 		retryCount:       cfg.RetryCount,
 		workerCount:      cfg.WorkerCount,
+		metrics:          cfg.Metrics,
 	}
 }
 func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {

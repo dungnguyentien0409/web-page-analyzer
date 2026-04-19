@@ -10,6 +10,7 @@ import (
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 )
 
 type HandlerConfig struct {
@@ -18,6 +19,7 @@ type HandlerConfig struct {
 	Analyzer       analyzer.Analyzer
 	RequestTimeout time.Duration
 	Logger         *slog.Logger
+	Metrics        *metrics.Collector
 }
 
 type Handler struct {
@@ -26,6 +28,7 @@ type Handler struct {
 	analyzePage    func(context.Context, analyzer.PageAnalysisRequest) (*analyzer.PageAnalysisResult, error)
 	requestTimeout time.Duration
 	logger         *slog.Logger
+	metrics        *metrics.Collector
 }
 
 func NewHandler(cfg HandlerConfig) *Handler {
@@ -35,6 +38,7 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		analyzePage:    cfg.Analyzer.AnalyzePage,
 		requestTimeout: cfg.RequestTimeout,
 		logger:         cfg.Logger,
+		metrics:        cfg.Metrics,
 	}
 }
 func (h *Handler) render(w http.ResponseWriter, data any) {
@@ -60,17 +64,26 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is required", http.StatusBadRequest)
 		return
 	}
+	start := time.Now()
+	status := "success"
+	defer func() {
+		h.metrics.IncAnalysisTotal(status)
+		h.metrics.ObserveAnalysisDuration(status, time.Since(start).Seconds())
+	}()
+
 	ctx, cancel := context.WithTimeout(r.Context(), h.requestTimeout)
 	defer cancel()
 
 	htmlContent, err := h.fetcher.Fetch(ctx, urlInput)
 	if err != nil {
+		status = "fetch_error"
 		h.logger.Error("fetch error in handler", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
 	analysis, err := h.analyzePage(ctx, analyzer.PageAnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
+		status = "analysis_error"
 		h.logger.Error("analysis error in handler", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Failed to parse HTML"})
 		return
