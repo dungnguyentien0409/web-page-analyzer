@@ -1,4 +1,4 @@
-.PHONY: build docker-build run docker-run unit integration coverage clean
+.PHONY: build docker-build run docker-run unit integration coverage bench lint clean
 
 BINARY_DIR=bin
 BINARY_NAME=$(BINARY_DIR)/analyzer
@@ -33,6 +33,14 @@ coverage:
 	@echo "Running unit tests with coverage report..."
 	go test ./... -coverprofile=cover.out
 	go tool cover -func=cover.out
+
+bench:
+	@echo "Running all benchmarks..."
+	go test -bench=. -benchmem ./...
+
+lint:
+	@echo "Running linter..."
+	golangci-lint run ./...
 
 clean:
 	@echo "Cleaning up..."
