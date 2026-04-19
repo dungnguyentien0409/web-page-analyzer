@@ -14,16 +14,19 @@ func TestCollector(t *testing.T) {
 	if c != c2 {
 		t.Error("NewCollector should return the same instance (singleton)")
 	}
-
-	t.Run("IncAnalysisTotal", func(t *testing.T) {
-		c.IncAnalysisTotal("success")
-		c.IncAnalysisTotal("error")
+	t.Run("IncHTTPRequests", func(t *testing.T) {
+		c.IncHTTPRequests("success")
+		c.IncHTTPRequests("error")
 	})
-	t.Run("ObserveAnalysisDuration", func(t *testing.T) {
-		c.ObserveAnalysisDuration("success", 0.123)
+	t.Run("ObserveHTTPDuration", func(t *testing.T) {
+		c.ObserveHTTPDuration("success", 0.123)
 	})
 	t.Run("IncLinksChecked", func(t *testing.T) {
 		c.IncLinksChecked(true)
 		c.IncLinksChecked(false)
+	})
+	t.Run("IncOutboundRequest", func(t *testing.T) {
+		c.IncOutboundRequest("example.com", "GET", "200")
+		c.IncOutboundRequest("broken.com", "HEAD", "error")
 	})
 }

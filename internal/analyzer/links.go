@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -32,15 +33,28 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 	if err != nil {
 		return false
 	}
+	u, _ := url.Parse(link)
+	domain := "unknown"
+	if u != nil {
+		domain = u.Host
+	}
+
 	a.logger.Debug("checking link", "url", link)
 	var resp *http.Response
 	for i := 0; i < a.retryCount; i++ {
 		resp, err = linkCheckClient.Do(req)
+
+		status := "error"
+		if resp != nil {
+			status = fmt.Sprintf("%d", resp.StatusCode)
+		}
+		a.metrics.IncOutboundRequest(domain, "HEAD", status)
+
 		if err == nil && resp.StatusCode < 500 {
 			break
 		}
 		if resp != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 		if ctx.Err() != nil {
 			return false
@@ -50,7 +64,9 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	return resp.StatusCode >= 200 && resp.StatusCode < 400
 }
 

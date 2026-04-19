@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 )
 
 func TestFetchURL_Success(t *testing.T) {
@@ -17,7 +19,8 @@ func TestFetchURL_Success(t *testing.T) {
 		}),
 	)
 	defer server.Close()
-	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	mc := metrics.NewCollector()
+	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)), mc)
 	body, err := f.Fetch(context.TODO(), server.URL)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -34,21 +37,24 @@ func TestFetchURL_HTTPErrorStatus(t *testing.T) {
 		}),
 	)
 	defer server.Close()
-	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	mc := metrics.NewCollector()
+	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)), mc)
 	_, err := f.Fetch(context.TODO(), server.URL)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 func TestFetchURL_InvalidURL(t *testing.T) {
-	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	mc := metrics.NewCollector()
+	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)), mc)
 	_, err := f.Fetch(context.TODO(), "://bad-url")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 func TestFetchURL_ContextCanceled(t *testing.T) {
-	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	mc := metrics.NewCollector()
+	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)), mc)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, err := f.Fetch(ctx, "http://example.com")
@@ -74,7 +80,8 @@ func TestFetchURL_ReadError(t *testing.T) {
 		}),
 	)
 	defer server.Close()
-	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	mc := metrics.NewCollector()
+	f := NewDefaultFetcher(slog.New(slog.NewTextHandler(io.Discard, nil)), mc)
 	_, err := f.Fetch(context.TODO(), server.URL)
 	if err == nil {
 		t.Fatal("expected read error")

@@ -9,11 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+
 	"github.com/PuerkitoBio/goquery"
 )
 
 func TestExtractLinks(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	tsInternal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -32,6 +35,7 @@ func TestExtractLinks(t *testing.T) {
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	html := `
 		<a href="/internal">Internal</a>
@@ -66,10 +70,12 @@ func TestExtractLinks(t *testing.T) {
 }
 func TestIsLinkAccessible_Fail(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	if a.isLinkAccessible(context.TODO(), "http://non-existent-domain-12345.com") {
 		t.Error("expected false for invalid domain")
@@ -77,10 +83,12 @@ func TestIsLinkAccessible_Fail(t *testing.T) {
 }
 func TestIsLinkAccessible_MalformedURL(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	if a.isLinkAccessible(context.TODO(), "\x00") {
 		t.Error("expected false for malformed URL")
@@ -88,10 +96,12 @@ func TestIsLinkAccessible_MalformedURL(t *testing.T) {
 }
 func TestIsLinkAccessible_ContextCanceled(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -111,10 +121,12 @@ func TestIsLinkAccessible_RetrySuccess(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	if !a.isLinkAccessible(context.TODO(), ts.URL) {
 		t.Error("expected true after retry")
@@ -126,10 +138,12 @@ func TestIsLinkAccessible_Persistent500(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer ts.Close()
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	if a.isLinkAccessible(context.TODO(), ts.URL) {
 		t.Error("expected false for persistent 500")
@@ -143,10 +157,12 @@ func TestIsLinkAccessible_RetryContextCanceled(t *testing.T) {
 		cancel()
 	}))
 	defer ts.Close()
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	if a.isLinkAccessible(ctx, ts.URL) {
 		t.Error("expected false when context canceled during retry")
@@ -154,10 +170,12 @@ func TestIsLinkAccessible_RetryContextCanceled(t *testing.T) {
 }
 func TestExtractLinks_InvalidURL(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(""))
 	_, err := a.extractLinks(context.TODO(), doc, "\x00")
@@ -167,10 +185,12 @@ func TestExtractLinks_InvalidURL(t *testing.T) {
 }
 func TestIsLinkAccessible_EmptyResponse(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mc := metrics.NewCollector()
 	a := NewDefaultAnalyzer(AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  1,
 		WorkerCount: 1,
+		Metrics:     mc,
 	})
 	// URL không hợp lệ nhưng qua được bước tạo Request
 	if a.isLinkAccessible(context.TODO(), "http://") {

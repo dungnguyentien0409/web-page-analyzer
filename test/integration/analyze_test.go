@@ -15,6 +15,7 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 )
 
 func TestAnalyzeIntegration(t *testing.T) {
@@ -44,11 +45,13 @@ func TestAnalyzeIntegration(t *testing.T) {
 		t.Fatalf("failed to parse template: %v", err)
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	f := fetcher.NewDefaultFetcher(logger)
+	mc := metrics.NewCollector()
+	f := fetcher.NewDefaultFetcher(logger, mc)
 	p := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,
 		WorkerCount: 20,
+		Metrics:     mc,
 	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
@@ -56,6 +59,7 @@ func TestAnalyzeIntegration(t *testing.T) {
 		Analyzer:       p,
 		RequestTimeout: 10 * time.Second,
 		Logger:         logger,
+		Metrics:        mc,
 	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.IndexHandler)

@@ -35,7 +35,7 @@ func main() {
 	}
 	mc := metrics.NewCollector()
 	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
-	fetcherSvc := fetcher.NewDefaultFetcher(logger)
+	fetcherSvc := fetcher.NewDefaultFetcher(logger, mc)
 	analyzerSvc := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  cfg.LinkCheckRetries,

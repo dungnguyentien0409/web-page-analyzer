@@ -46,7 +46,7 @@ func setupTestHandler() *Handler {
 	mc := metrics.NewCollector()
 	return NewHandler(HandlerConfig{
 		Template: t,
-		Fetcher:  fetcher.NewDefaultFetcher(logger),
+		Fetcher:  fetcher.NewDefaultFetcher(logger, mc),
 		Analyzer: analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 			Logger:      logger,
 			RetryCount:  3,

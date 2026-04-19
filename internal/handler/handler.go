@@ -67,8 +67,8 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"
 	defer func() {
-		h.metrics.IncAnalysisTotal(status)
-		h.metrics.ObserveAnalysisDuration(status, time.Since(start).Seconds())
+		h.metrics.IncHTTPRequests(status)
+		h.metrics.ObserveHTTPDuration(status, time.Since(start).Seconds())
 	}()
 
 	ctx, cancel := context.WithTimeout(r.Context(), h.requestTimeout)
