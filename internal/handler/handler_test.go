@@ -16,6 +16,7 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/middleware"
 )
 
 type mockFetcher struct {
@@ -131,12 +132,20 @@ func TestAnalyzeHandler_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/analyze", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	h.AnalyzeHandler(rr, req)
+
+	// Test with request ID middleware
+	handler := middleware.RequestID(http.HandlerFunc(h.AnalyzeHandler))
+	handler.ServeHTTP(rr, req)
+
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)
 	}
 	if !strings.Contains(rr.Body.String(), "Page title: Test") {
 		t.Errorf("expected title in response")
+	}
+	// Check that request ID was set
+	if rr.Header().Get("X-Request-ID") == "" {
+		t.Error("expected X-Request-ID header to be set")
 	}
 }
 func TestAnalyzeHandler_TemplateError(t *testing.T) {

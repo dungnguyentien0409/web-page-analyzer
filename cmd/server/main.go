@@ -16,6 +16,7 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/middleware"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/ratelimit"
 	"github.com/dungnguyentien0409/web-page-analyzer/web"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -36,7 +37,6 @@ func main() {
 	}
 	mc := metrics.NewCollector()
 
-	// Parse embedded templates
 	tmplFS, err := fs.Sub(web.Templates, "templates")
 	if err != nil {
 		logger.Error("failed to sub templates", "error", err)
@@ -46,7 +46,6 @@ func main() {
 
 	fetcherSvc := fetcher.NewDefaultFetcher(logger, mc)
 
-	// Outbound rate limiter
 	outboundLimiter := ratelimit.NewOutboundLimiter(ratelimit.OutboundConfig{
 		GlobalRPS:   cfg.OutboundGlobalRPS,
 		GlobalBurst: cfg.OutboundGlobalBurst,
@@ -56,11 +55,11 @@ func main() {
 	})
 
 	analyzerSvc := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
-		Logger:           logger,
-		RetryCount:       cfg.LinkCheckRetries,
-		WorkerCount:      cfg.LinkCheckWorkers,
-		Metrics:          mc,
-		OutboundLimiter:  outboundLimiter,
+		Logger:          logger,
+		RetryCount:      cfg.LinkCheckRetries,
+		WorkerCount:     cfg.LinkCheckWorkers,
+		Metrics:         mc,
+		OutboundLimiter: outboundLimiter,
 	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
@@ -85,9 +84,12 @@ func main() {
 		),
 	)
 
+	// Middleware chain: RequestID -> RateLimit -> Handlers
+	handler := middleware.RequestID(limiter.Middleware(mux))
+
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: limiter.Middleware(mux),
+		Handler: handler,
 	}
 	go func() {
 		logger.Info("Server running", "addr", ":8080", "url", "http://localhost:8080")

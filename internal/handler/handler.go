@@ -11,6 +11,7 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/analyzer"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/middleware"
 )
 
 type HandlerConfig struct {
@@ -59,11 +60,18 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+
+	requestID := middleware.GetRequestID(r.Context())
+	logger := h.logger.With("request_id", requestID)
+
 	urlInput := r.FormValue("url")
 	if urlInput == "" {
+		logger.Warn("missing url parameter")
 		http.Error(w, "URL is required", http.StatusBadRequest)
 		return
 	}
+
+	logger.Info("analysis request started", "url", urlInput)
 	start := time.Now()
 	status := "success"
 	defer func() {
@@ -77,16 +85,26 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	htmlContent, err := h.fetcher.Fetch(ctx, urlInput)
 	if err != nil {
 		status = "fetch_error"
-		h.logger.Error("fetch error in handler", "url", urlInput, "error", err)
+		logger.Error("fetch error", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Could not reach the URL. " + err.Error()})
 		return
 	}
 	analysis, err := h.analyzePage(ctx, analyzer.AnalysisRequest{HTML: htmlContent, URL: urlInput})
 	if err != nil {
 		status = "analysis_error"
-		h.logger.Error("analysis error in handler", "url", urlInput, "error", err)
+		logger.Error("analysis error", "url", urlInput, "error", err)
 		h.render(w, map[string]any{"Error": "Failed to parse HTML"})
 		return
 	}
+
+	logger.Info("analysis completed",
+		"url", urlInput,
+		"title", analysis.Title,
+		"internal_links", analysis.InternalLinks,
+		"external_links", analysis.ExternalLinks,
+		"inaccessible_links", analysis.InaccessibleLinks,
+		"duration", time.Since(start).String(),
+	)
+
 	h.render(w, map[string]any{"Result": analysis})
 }
