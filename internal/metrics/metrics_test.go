@@ -29,4 +29,16 @@ func TestCollector(t *testing.T) {
 		c.IncOutboundRequest("example.com", "GET", "200")
 		c.IncOutboundRequest("broken.com", "HEAD", "error")
 	})
+	t.Run("ObserveOutboundDuration", func(t *testing.T) {
+		c.ObserveOutboundDuration("example.com", "GET", 0.5)
+		c.ObserveOutboundDuration("example.com", "HEAD", 0.1)
+	})
+	t.Run("IncRateLimitRejection", func(t *testing.T) {
+		c.IncRateLimitRejection("inbound")
+		c.IncRateLimitRejection("outbound")
+	})
+	t.Run("InflightRequests", func(t *testing.T) {
+		c.IncInflight("/analyze")
+		c.DecInflight("/analyze")
+	})
 }

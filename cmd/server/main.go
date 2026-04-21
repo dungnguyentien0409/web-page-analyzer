@@ -71,8 +71,9 @@ func main() {
 	})
 
 	limiter := ratelimit.NewInboundLimiter(ratelimit.InboundConfig{
-		RPS:   cfg.RateLimitRPS,
-		Burst: cfg.RateLimitBurst,
+		RPS:     cfg.RateLimitRPS,
+		Burst:   cfg.RateLimitBurst,
+		Metrics: mc,
 	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.IndexHandler)

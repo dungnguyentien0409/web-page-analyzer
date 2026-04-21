@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 	"golang.org/x/time/rate"
 )
 
@@ -13,11 +14,13 @@ type InboundLimiter struct {
 	limiters map[string]*rate.Limiter
 	r        rate.Limit
 	burst    int
+	metrics  *metrics.Collector
 }
 
 type InboundConfig struct {
-	RPS   float64
-	Burst int
+	RPS     float64
+	Burst   int
+	Metrics *metrics.Collector
 }
 
 func NewInboundLimiter(cfg InboundConfig) *InboundLimiter {
@@ -35,6 +38,7 @@ func NewInboundLimiter(cfg InboundConfig) *InboundLimiter {
 		limiters: make(map[string]*rate.Limiter),
 		r:        rate.Limit(cfg.RPS),
 		burst:    cfg.Burst,
+		metrics:  cfg.Metrics,
 	}
 }
 
@@ -59,6 +63,9 @@ func (i *InboundLimiter) Middleware(next http.Handler) http.Handler {
 		limiter := i.getLimiter(ip)
 
 		if !limiter.Allow() {
+			if i.metrics != nil {
+				i.metrics.IncRateLimitRejection("inbound")
+			}
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}

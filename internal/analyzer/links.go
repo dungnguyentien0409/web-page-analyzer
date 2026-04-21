@@ -38,6 +38,7 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 	// Rate limit trước khi request
 	if a.outboundLimiter != nil {
 		if err := a.outboundLimiter.Wait(ctx, domain); err != nil {
+			a.metrics.IncRateLimitRejection("outbound")
 			return false
 		}
 	}
@@ -50,13 +51,16 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 	a.logger.Debug("checking link", "url", link)
 	var resp *http.Response
 	for i := 0; i < a.retryCount; i++ {
+		reqStart := time.Now()
 		resp, err = linkCheckClient.Do(req)
+		reqDuration := time.Since(reqStart).Seconds()
 
 		status := "error"
 		if resp != nil {
 			status = fmt.Sprintf("%d", resp.StatusCode)
 		}
 		a.metrics.IncOutboundRequest(domain, "HEAD", status)
+		a.metrics.ObserveOutboundDuration(domain, "HEAD", reqDuration)
 
 		if err == nil && resp.StatusCode < 500 {
 			break
@@ -69,13 +73,15 @@ func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) boo
 		}
 		a.logger.Warn("retrying link check", "url", link, "attempt", i+1)
 	}
-	if err != nil {
-		return false
+
+	accessible := false
+	if err == nil && resp != nil {
+		defer func() { _ = resp.Body.Close() }()
+		accessible = resp.StatusCode >= 200 && resp.StatusCode < 400
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-	return resp.StatusCode >= 200 && resp.StatusCode < 400
+
+	a.metrics.IncLinksChecked(accessible)
+	return accessible
 }
 
 func (a *DefaultAnalyzer) extractLinks(

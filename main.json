@@ -1,34 +1,407 @@
 {
-  "annotations": { "list": [] },
-  "editable": true,
-  "panels": [
-    {
-      "title": "Inbound Request Rate",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "targets": [{ "expr": "sum(rate(web_analyzer_http_requests_total[1m])) by (status)" }]
+    "annotations": {
+        "list": []
     },
-    {
-      "title": "Inbound Latency (P95)",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(web_analyzer_http_request_duration_seconds_bucket[1m])) by (le))" }]
-    },
-    {
-      "title": "Link Accessibility Status",
-      "type": "bargauge",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "targets": [{ "expr": "sum(web_analyzer_links_checked_total) by (accessible)" }]
-    },
-    {
-      "title": "Outbound Requests by Domain",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "targets": [{ "expr": "sum(rate(web_analyzer_outbound_requests_total[5m])) by (domain, status, method)" }]
-    }
-  ],
-  "schemaVersion": 36,
-  "title": "Web Page Analyzer Insight",
-  "uid": "analyzer-main",
-  "version": 1
+    "editable": true,
+    "refresh": "5s",
+    "panels": [
+        {
+            "title": "Request Rate (req/s)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 0
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps",
+                    "custom": {
+                        "lineWidth": 2,
+                        "fillOpacity": 10
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(web_analyzer_http_requests_total[1m])) by (status)",
+                    "legendFormat": "{{status}}"
+                }
+            ]
+        },
+        {
+            "title": "Request Latency (P50, P95, P99)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 0
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "custom": {
+                        "lineWidth": 2
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.50, sum(rate(web_analyzer_http_request_duration_seconds_bucket[1m])) by (le))",
+                    "legendFormat": "P50"
+                },
+                {
+                    "expr": "histogram_quantile(0.95, sum(rate(web_analyzer_http_request_duration_seconds_bucket[1m])) by (le))",
+                    "legendFormat": "P95"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum(rate(web_analyzer_http_request_duration_seconds_bucket[1m])) by (le))",
+                    "legendFormat": "P99"
+                }
+            ]
+        },
+        {
+            "title": "Error Rate (%)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit",
+                    "max": 1,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 0.05
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.1
+                            }
+                        ]
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(web_analyzer_http_requests_total{status!=\"success\"}[1m])) / sum(rate(web_analyzer_http_requests_total[1m]))",
+                    "legendFormat": "Error Rate"
+                }
+            ]
+        },
+        {
+            "title": "In-Flight Requests",
+            "type": "gauge",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 10
+                            },
+                            {
+                                "color": "red",
+                                "value": 20
+                            }
+                        ]
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_inflight_requests)",
+                    "legendFormat": "Active"
+                }
+            ]
+        },
+        {
+            "title": "Link Accessibility",
+            "type": "piechart",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 16
+            },
+            "options": {
+                "displayLabels": [
+                    "percent"
+                ]
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_links_checked_total{accessible=\"true\"})",
+                    "legendFormat": "Accessible"
+                },
+                {
+                    "expr": "sum(web_analyzer_links_checked_total{accessible=\"false\"})",
+                    "legendFormat": "Inaccessible"
+                }
+            ]
+        },
+        {
+            "title": "Rate Limit Rejections",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 8,
+                "y": 16
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(web_analyzer_rate_limit_rejections_total[1m])) by (type)",
+                    "legendFormat": "{{type}}"
+                }
+            ]
+        },
+        {
+            "title": "Outbound Requests by Domain",
+            "type": "table",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 16,
+                "y": 16
+            },
+            "targets": [
+                {
+                    "expr": "topk(10, sum by (domain) (rate(web_analyzer_outbound_requests_total[5m])))",
+                    "format": "table",
+                    "instant": true
+                }
+            ],
+            "transformations": [
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true
+                        },
+                        "indexByName": {
+                            "domain": 0,
+                            "Value": 1
+                        },
+                        "renameByName": {
+                            "Value": "req/s"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Outbound Latency by Domain (P95)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 24
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "topk(5, histogram_quantile(0.95, sum by (domain, le) (rate(web_analyzer_outbound_request_duration_seconds_bucket[1m]))))",
+                    "legendFormat": "{{domain}}"
+                }
+            ]
+        },
+        {
+            "title": "Outbound Status Codes",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 24
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(web_analyzer_outbound_requests_total[1m])) by (status)",
+                    "legendFormat": "{{status}}"
+                }
+            ]
+        },
+        {
+            "title": "Request Status Breakdown",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 0,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_http_requests_total{status=\"success\"})",
+                    "legendFormat": "Success"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "fixed",
+                        "fixedColor": "green"
+                    }
+                }
+            }
+        },
+        {
+            "title": "Fetch Errors",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 4,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_http_requests_total{status=\"fetch_error\"})",
+                    "legendFormat": "Fetch Errors"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "fixed",
+                        "fixedColor": "orange"
+                    }
+                }
+            }
+        },
+        {
+            "title": "Analysis Errors",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 8,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_http_requests_total{status=\"analysis_error\"})",
+                    "legendFormat": "Analysis Errors"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "fixed",
+                        "fixedColor": "red"
+                    }
+                }
+            }
+        },
+        {
+            "title": "Total Links Checked",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 12,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_links_checked_total)",
+                    "legendFormat": "Total Links"
+                }
+            ]
+        },
+        {
+            "title": "Inbound Rate Limited",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 16,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_rate_limit_rejections_total{type=\"inbound\"})",
+                    "legendFormat": "Rejected"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "fixed",
+                        "fixedColor": "purple"
+                    }
+                }
+            }
+        },
+        {
+            "title": "Outbound Rate Limited",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 20,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "expr": "sum(web_analyzer_rate_limit_rejections_total{type=\"outbound\"})",
+                    "legendFormat": "Rejected"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "fixed",
+                        "fixedColor": "purple"
+                    }
+                }
+            }
+        }
+    ],
+    "schemaVersion": 36,
+    "title": "Web Page Analyzer - Full Observability",
+    "uid": "analyzer-main",
+    "version": 2
 }

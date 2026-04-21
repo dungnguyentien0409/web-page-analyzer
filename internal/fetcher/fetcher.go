@@ -58,13 +58,16 @@ func (f *DefaultFetcher) Fetch(ctx context.Context, urlStr string) ([]byte, erro
 		domain = u.Host
 	}
 
+	start := time.Now()
 	resp, err := f.client.Do(req)
+	duration := time.Since(start).Seconds()
 
 	status := "error"
 	if resp != nil {
 		status = fmt.Sprintf("%d", resp.StatusCode)
 	}
 	f.metrics.IncOutboundRequest(domain, "GET", status)
+	f.metrics.ObserveOutboundDuration(domain, "GET", duration)
 
 	if err != nil {
 		f.logger.Error("fetch failed", "url", urlStr, "error", err)
