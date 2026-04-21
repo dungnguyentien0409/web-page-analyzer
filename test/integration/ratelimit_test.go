@@ -5,12 +5,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/middleware"
-	"golang.org/x/time/rate"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/ratelimit"
 )
 
 func TestRateLimiterIntegration(t *testing.T) {
-	limiter := middleware.NewIPRateLimiter(rate.Limit(2), 2)
+	limiter := ratelimit.NewInboundLimiter(ratelimit.InboundConfig{
+		RPS:   2,
+		Burst: 2,
+	})
 
 	mux := http.NewServeMux()
 	mux.Handle("/test", limiter.Middleware(http.HandlerFunc(

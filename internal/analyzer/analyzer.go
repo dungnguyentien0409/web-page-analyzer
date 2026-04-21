@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/ratelimit"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -35,10 +36,11 @@ type Analyzer interface {
 }
 
 type AnalyzerConfig struct {
-	Logger      *slog.Logger
-	RetryCount  int
-	WorkerCount int
-	Metrics     *metrics.Collector
+	Logger           *slog.Logger
+	RetryCount       int
+	WorkerCount      int
+	Metrics          *metrics.Collector
+	OutboundLimiter  *ratelimit.OutboundLimiter
 }
 
 type DefaultAnalyzer struct {
@@ -47,6 +49,7 @@ type DefaultAnalyzer struct {
 	retryCount       int
 	workerCount      int
 	metrics          *metrics.Collector
+	outboundLimiter  *ratelimit.OutboundLimiter
 }
 
 func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
@@ -56,6 +59,7 @@ func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
 		retryCount:       cfg.RetryCount,
 		workerCount:      cfg.WorkerCount,
 		metrics:          cfg.Metrics,
+		outboundLimiter:  cfg.OutboundLimiter,
 	}
 }
 func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {

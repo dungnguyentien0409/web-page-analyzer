@@ -29,14 +29,22 @@ var (
 )
 
 func (a *DefaultAnalyzer) isLinkAccessible(ctx context.Context, link string) bool {
-	req, err := http.NewRequestWithContext(ctx, "HEAD", link, nil)
-	if err != nil {
-		return false
-	}
 	u, _ := url.Parse(link)
 	domain := "unknown"
 	if u != nil {
 		domain = u.Host
+	}
+
+	// Rate limit trước khi request
+	if a.outboundLimiter != nil {
+		if err := a.outboundLimiter.Wait(ctx, domain); err != nil {
+			return false
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "HEAD", link, nil)
+	if err != nil {
+		return false
 	}
 
 	a.logger.Debug("checking link", "url", link)

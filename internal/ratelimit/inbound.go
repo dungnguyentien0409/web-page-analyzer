@@ -1,4 +1,4 @@
-package middleware
+package ratelimit
 
 import (
 	"net"
@@ -8,22 +8,37 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type IPRateLimiter struct {
+type InboundLimiter struct {
 	mu       sync.Mutex
 	limiters map[string]*rate.Limiter
 	r        rate.Limit
 	burst    int
 }
 
-func NewIPRateLimiter(r rate.Limit, burst int) *IPRateLimiter {
-	return &IPRateLimiter{
+type InboundConfig struct {
+	RPS   float64
+	Burst int
+}
+
+func NewInboundLimiter(cfg InboundConfig) *InboundLimiter {
+
+	// Defaults
+	if cfg.RPS <= 0 {
+		cfg.RPS = 10
+	}
+
+	if cfg.Burst <= 0 {
+		cfg.Burst = 20
+	}
+
+	return &InboundLimiter{
 		limiters: make(map[string]*rate.Limiter),
-		r:        r,
-		burst:    burst,
+		r:        rate.Limit(cfg.RPS),
+		burst:    cfg.Burst,
 	}
 }
 
-func (i *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
+func (i *InboundLimiter) getLimiter(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -36,7 +51,7 @@ func (i *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
 	return limiter
 }
 
-func (i *IPRateLimiter) Middleware(next http.Handler) http.Handler {
+func (i *InboundLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		ip, _, _ := net.SplitHostPort(r.RemoteAddr)

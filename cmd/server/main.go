@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"html/template"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,9 +16,9 @@ import (
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/fetcher"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/handler"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
-	"github.com/dungnguyentien0409/web-page-analyzer/internal/middleware"
+	"github.com/dungnguyentien0409/web-page-analyzer/internal/ratelimit"
+	"github.com/dungnguyentien0409/web-page-analyzer/web"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -34,13 +35,32 @@ func main() {
 		os.Exit(1)
 	}
 	mc := metrics.NewCollector()
-	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
+
+	// Parse embedded templates
+	tmplFS, err := fs.Sub(web.Templates, "templates")
+	if err != nil {
+		logger.Error("failed to sub templates", "error", err)
+		os.Exit(1)
+	}
+	tmpl := template.Must(template.ParseFS(tmplFS, "index.html"))
+
 	fetcherSvc := fetcher.NewDefaultFetcher(logger, mc)
-	analyzerSvc := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
+
+	// Outbound rate limiter
+	outboundLimiter := ratelimit.NewOutboundLimiter(ratelimit.OutboundConfig{
+		GlobalRPS:   cfg.OutboundGlobalRPS,
+		GlobalBurst: cfg.OutboundGlobalBurst,
+		HostRPS:     cfg.OutboundHostRPS,
+		HostBurst:   cfg.OutboundHostBurst,
 		Logger:      logger,
-		RetryCount:  cfg.LinkCheckRetries,
-		WorkerCount: cfg.LinkCheckWorkers,
-		Metrics:     mc,
+	})
+
+	analyzerSvc := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
+		Logger:           logger,
+		RetryCount:       cfg.LinkCheckRetries,
+		WorkerCount:      cfg.LinkCheckWorkers,
+		Metrics:          mc,
+		OutboundLimiter:  outboundLimiter,
 	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
@@ -51,7 +71,10 @@ func main() {
 		Metrics:        mc,
 	})
 
-	limiter := middleware.NewIPRateLimiter(rate.Limit(cfg.RateLimitRPS), cfg.RateLimitBurst)
+	limiter := ratelimit.NewInboundLimiter(ratelimit.InboundConfig{
+		RPS:   cfg.RateLimitRPS,
+		Burst: cfg.RateLimitBurst,
+	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.IndexHandler)
 	mux.HandleFunc("/analyze", h.AnalyzeHandler)
@@ -82,5 +105,6 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("Server forced to shutdown", "error", err)
 	}
+	outboundLimiter.Stop()
 	logger.Info("Server exiting")
 }

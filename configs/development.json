@@ -1,7 +1,11 @@
 {
-  "request_timeout_seconds": 15,
-  "link_check_workers": 20,
-  "link_check_retries": 3,
-  "rate_limit_rps": 2.0,
-  "rate_limit_burst": 5
+  "request_timeout_seconds": 15, 
+  "link_check_workers": 20, 
+  "link_check_retries": 3, 
+  "rate_limit_rps": 2.0, 
+  "rate_limit_burst": 5, 
+  "outbound_global_rps": 100, 
+  "outbound_global_burst": 50, 
+  "outbound_host_rps": 20, 
+  "outbound_host_burst": 10
 }
