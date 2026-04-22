@@ -5,7 +5,9 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/metrics"
 	"github.com/dungnguyentien0409/web-page-analyzer/internal/ratelimit"
@@ -35,12 +37,19 @@ type Analyzer interface {
 	AnalyzePage(ctx context.Context, req AnalysisRequest) (*AnalysisResult, error)
 }
 
+type LinkCheckConfig struct {
+	TimeoutSec          int
+	MaxIdleConns        int
+	MaxIdleConnsPerHost int
+}
+
 type AnalyzerConfig struct {
-	Logger           *slog.Logger
-	RetryCount       int
-	WorkerCount      int
-	Metrics          *metrics.Collector
-	OutboundLimiter  *ratelimit.OutboundLimiter
+	Logger          *slog.Logger
+	RetryCount      int
+	WorkerCount     int
+	Metrics         *metrics.Collector
+	OutboundLimiter *ratelimit.OutboundLimiter
+	LinkCheckClient *LinkCheckConfig
 }
 
 type DefaultAnalyzer struct {
@@ -50,9 +59,27 @@ type DefaultAnalyzer struct {
 	workerCount      int
 	metrics          *metrics.Collector
 	outboundLimiter  *ratelimit.OutboundLimiter
+	linkCheckClient  *http.Client
 }
 
 func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
+	// Apply defaults for link check client
+	timeout := 5 * time.Second
+	maxIdleConns := 100
+	maxIdlePerHost := 20
+
+	if cfg.LinkCheckClient != nil {
+		if cfg.LinkCheckClient.TimeoutSec > 0 {
+			timeout = time.Duration(cfg.LinkCheckClient.TimeoutSec) * time.Second
+		}
+		if cfg.LinkCheckClient.MaxIdleConns > 0 {
+			maxIdleConns = cfg.LinkCheckClient.MaxIdleConns
+		}
+		if cfg.LinkCheckClient.MaxIdleConnsPerHost > 0 {
+			maxIdlePerHost = cfg.LinkCheckClient.MaxIdleConnsPerHost
+		}
+	}
+
 	return &DefaultAnalyzer{
 		logger:           cfg.Logger,
 		documentProvider: goquery.NewDocumentFromReader,
@@ -60,6 +87,13 @@ func NewDefaultAnalyzer(cfg AnalyzerConfig) *DefaultAnalyzer {
 		workerCount:      cfg.WorkerCount,
 		metrics:          cfg.Metrics,
 		outboundLimiter:  cfg.OutboundLimiter,
+		linkCheckClient: &http.Client{
+			Timeout: timeout,
+			Transport: &http.Transport{
+				MaxIdleConns:        maxIdleConns,
+				MaxIdleConnsPerHost: maxIdlePerHost,
+			},
+		},
 	}
 }
 func (a *DefaultAnalyzer) ParseHTML(html []byte) (*goquery.Document, error) {

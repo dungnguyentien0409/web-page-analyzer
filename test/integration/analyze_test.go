@@ -46,7 +46,7 @@ func TestAnalyzeIntegration(t *testing.T) {
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	mc := metrics.NewCollector()
-	f := fetcher.NewDefaultFetcher(logger, mc)
+	f := fetcher.NewDefaultFetcher(fetcher.FetcherConfig{}, logger, mc)
 	p := analyzer.NewDefaultAnalyzer(analyzer.AnalyzerConfig{
 		Logger:      logger,
 		RetryCount:  3,

@@ -16,29 +16,63 @@ import (
 type Fetcher interface {
 	Fetch(ctx context.Context, url string) ([]byte, error)
 }
+
+type FetcherConfig struct {
+	TimeoutSec          int
+	DialTimeoutSec      int
+	DialKeepAliveSec    int
+	MaxIdleConns        int
+	MaxIdleConnsPerHost int
+	IdleConnTimeoutSec  int
+	TLSHandshakeSec     int
+}
+
 type DefaultFetcher struct {
 	client  *http.Client
 	logger  *slog.Logger
 	metrics *metrics.Collector
 }
 
-func NewDefaultFetcher(logger *slog.Logger, metrics *metrics.Collector) *DefaultFetcher {
+func NewDefaultFetcher(cfg FetcherConfig, logger *slog.Logger, metrics *metrics.Collector) *DefaultFetcher {
+	// Apply defaults
+	if cfg.TimeoutSec <= 0 {
+		cfg.TimeoutSec = 10
+	}
+	if cfg.DialTimeoutSec <= 0 {
+		cfg.DialTimeoutSec = 5
+	}
+	if cfg.DialKeepAliveSec <= 0 {
+		cfg.DialKeepAliveSec = 30
+	}
+	if cfg.MaxIdleConns <= 0 {
+		cfg.MaxIdleConns = 100
+	}
+	if cfg.MaxIdleConnsPerHost <= 0 {
+		cfg.MaxIdleConnsPerHost = 20
+	}
+	if cfg.IdleConnTimeoutSec <= 0 {
+		cfg.IdleConnTimeoutSec = 90
+	}
+	if cfg.TLSHandshakeSec <= 0 {
+		cfg.TLSHandshakeSec = 5
+	}
+
 	return &DefaultFetcher{
 		logger:  logger,
 		metrics: metrics,
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: time.Duration(cfg.TimeoutSec) * time.Second,
 			Transport: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
 				DialContext: (&net.Dialer{
-					Timeout:   5 * time.Second,
-					KeepAlive: 30 * time.Second,
+					Timeout:   time.Duration(cfg.DialTimeoutSec) * time.Second,
+					KeepAlive: time.Duration(cfg.DialKeepAliveSec) * time.Second,
 				}).DialContext,
 				ForceAttemptHTTP2:     true,
-				MaxIdleConns:          100,
-				MaxIdleConnsPerHost:   20,
-				IdleConnTimeout:       90 * time.Second,
-				TLSHandshakeTimeout:   5 * time.Second,
+				MaxIdleConns:          cfg.MaxIdleConns,
+				MaxIdleConnsPerHost:   cfg.MaxIdleConnsPerHost,
+				IdleConnTimeout:       time.Duration(cfg.IdleConnTimeoutSec) * time.Second,
+				TLSHandshakeTimeout:   time.Duration(cfg.TLSHandshakeSec) * time.Second,
 				ExpectContinueTimeout: 1 * time.Second,
 			},
 		},
@@ -49,6 +83,7 @@ func (f *DefaultFetcher) Fetch(ctx context.Context, urlStr string) ([]byte, erro
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Set("User-Agent", "InsightBot/1.0 (Web Page Analyzer)")
 	f.logger.Info("fetching url", "url", urlStr)
 

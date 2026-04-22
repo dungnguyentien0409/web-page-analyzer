@@ -44,7 +44,15 @@ func main() {
 	}
 	tmpl := template.Must(template.ParseFS(tmplFS, "index.html"))
 
-	fetcherSvc := fetcher.NewDefaultFetcher(logger, mc)
+	fetcherSvc := fetcher.NewDefaultFetcher(fetcher.FetcherConfig{
+		TimeoutSec:          cfg.FetcherTimeoutSec,
+		DialTimeoutSec:      cfg.FetcherDialTimeoutSec,
+		DialKeepAliveSec:    cfg.FetcherDialKeepAliveSec,
+		MaxIdleConns:        cfg.FetcherMaxIdleConns,
+		MaxIdleConnsPerHost: cfg.FetcherMaxIdleConnsPerHost,
+		IdleConnTimeoutSec:  cfg.FetcherIdleConnTimeoutSec,
+		TLSHandshakeSec:     cfg.FetcherTLSHandshakeSec,
+	}, logger, mc)
 
 	outboundLimiter := ratelimit.NewOutboundLimiter(ratelimit.OutboundConfig{
 		GlobalRPS:   cfg.OutboundGlobalRPS,
@@ -60,6 +68,11 @@ func main() {
 		WorkerCount:     cfg.LinkCheckWorkers,
 		Metrics:         mc,
 		OutboundLimiter: outboundLimiter,
+		LinkCheckClient: &analyzer.LinkCheckConfig{
+			TimeoutSec:          cfg.LinkCheckTimeoutSec,
+			MaxIdleConns:        cfg.LinkCheckMaxIdleConns,
+			MaxIdleConnsPerHost: cfg.LinkCheckMaxIdlePerHost,
+		},
 	})
 	h := handler.NewHandler(handler.HandlerConfig{
 		Template:       tmpl,
