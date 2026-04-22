@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -19,22 +21,28 @@ type Config struct {
 	OutboundHostBurst   int `json:"outbound_host_burst"`
 
 	// Fetcher HTTP client settings
-	FetcherTimeoutSec         int `json:"fetcher_timeout_sec"`
-	FetcherDialTimeoutSec     int `json:"fetcher_dial_timeout_sec"`
-	FetcherDialKeepAliveSec   int `json:"fetcher_dial_keep_alive_sec"`
-	FetcherMaxIdleConns       int `json:"fetcher_max_idle_conns"`
+	FetcherTimeoutSec          int `json:"fetcher_timeout_sec"`
+	FetcherDialTimeoutSec      int `json:"fetcher_dial_timeout_sec"`
+	FetcherDialKeepAliveSec    int `json:"fetcher_dial_keep_alive_sec"`
+	FetcherMaxIdleConns        int `json:"fetcher_max_idle_conns"`
 	FetcherMaxIdleConnsPerHost int `json:"fetcher_max_idle_conns_per_host"`
-	FetcherIdleConnTimeoutSec int `json:"fetcher_idle_conn_timeout_sec"`
-	FetcherTLSHandshakeSec    int `json:"fetcher_tls_handshake_sec"`
+	FetcherIdleConnTimeoutSec  int `json:"fetcher_idle_conn_timeout_sec"`
+	FetcherTLSHandshakeSec     int `json:"fetcher_tls_handshake_sec"`
 
 	// Link checker HTTP client settings
-	LinkCheckTimeoutSec       int `json:"link_check_timeout_sec"`
-	LinkCheckMaxIdleConns     int `json:"link_check_max_idle_conns"`
-	LinkCheckMaxIdlePerHost   int `json:"link_check_max_idle_per_host"`
+	LinkCheckTimeoutSec     int `json:"link_check_timeout_sec"`
+	LinkCheckMaxIdleConns   int `json:"link_check_max_idle_conns"`
+	LinkCheckMaxIdlePerHost int `json:"link_check_max_idle_per_host"`
 }
 
 func Load(path string) (*Config, error) {
-	file, err := os.Open(path)
+	// Clean the path to prevent directory traversal attacks
+	cleanPath := filepath.Clean(path)
+	// Validate path doesn't contain directory traversal sequences
+	if strings.Contains(cleanPath, "..") {
+		return nil, os.ErrInvalid
+	}
+	file, err := os.Open(cleanPath)
 	if err != nil {
 		return nil, err
 	}

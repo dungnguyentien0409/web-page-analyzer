@@ -108,8 +108,9 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: handler,
+		Addr:              ":" + port,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {
 		logger.Info("Server running", "addr", ":"+port, "url", "http://localhost:"+port)
