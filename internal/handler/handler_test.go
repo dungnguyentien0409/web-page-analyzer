@@ -172,3 +172,21 @@ func TestAnalyzeHandler_WriteError(t *testing.T) {
 	ew := &errorResponseWriter{*httptest.NewRecorder()}
 	h.AnalyzeHandler(ew, req)
 }
+
+func TestHealthHandler(t *testing.T) {
+	h := setupTestHandler()
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+	h.HealthHandler(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %s", ct)
+	}
+	expected := `{"status":"ok"}` + "\n"
+	if rr.Body.String() != expected {
+		t.Errorf("expected body %q, got %q", expected, rr.Body.String())
+	}
+}

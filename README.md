@@ -32,7 +32,11 @@ make docker-run
 make docker-compose-up
 ```
 
-Application will be available at `http://localhost:8080`
+Services available at:
+- **Web Analyzer**: http://localhost:8080
+- **Health Check**: http://localhost:8080/health
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000 (admin/admin)
 
 ## Assumptions and Design Decisions
 
@@ -88,7 +92,6 @@ Unit tests (96%+ coverage), integration tests against real HTTP server, and benc
 
 - **REST API endpoint**: JSON response format for programmatic access
 - **Batch analysis**: Analyze multiple URLs in one request
-- **Health check endpoint**: `/health` for orchestrators and load balancers
 
 ### Production Readiness
 

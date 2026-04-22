@@ -91,6 +91,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.IndexHandler)
 	mux.HandleFunc("/analyze", h.AnalyzeHandler)
+	mux.HandleFunc("/health", h.HealthHandler)
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/static/",
 		http.StripPrefix("/static/",

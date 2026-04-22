@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -107,4 +108,11 @@ func (h *Handler) AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	h.render(w, map[string]any{"Result": analysis})
+}
+
+// HealthHandler returns the health status of the service.
+func (h *Handler) HealthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
