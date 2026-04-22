@@ -32,7 +32,7 @@ dev:
 # Tests
 unit:
 	@echo "Running unit tests..."
-	go test ./... -count=1
+	go test ./... -count=1 -parallel 4
 
 integration:
 	@echo "Running integration tests..."
@@ -42,15 +42,15 @@ integration:
 	@echo "3. All RateLimiter tests (Inbound + Outbound)"
 	@read -p "Enter your choice: " choice; \
 	case $$choice in \
-		1) go test ./test/integration/... -count=1 ;; \
+		1) go test ./test/integration/... -count=1 -parallel 4 ;; \
 		2) go test ./test/integration/... -run TestAnalyzeIntegration -count=1 ;; \
-		3) go test ./test/integration/... -run RateLimiter -count=1 ;; \
+		3) go test ./test/integration/... -run RateLimiter -count=1 -parallel 4 ;; \
 		*) echo "Invalid choice." ;; \
 	esac
 
 test: unit
 	@echo "Running integration tests..."
-	go test ./test/integration/... -count=1
+	go test ./test/integration/... -count=1 -parallel 4
 
 coverage:
 	@echo "Running tests with coverage report..."
