@@ -19,6 +19,7 @@ import (
 )
 
 func TestAnalyzeIntegration(t *testing.T) {
+	t.Parallel()
 	externalServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/broken" {
 			w.WriteHeader(http.StatusNotFound)

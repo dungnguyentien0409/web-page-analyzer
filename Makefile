@@ -39,12 +39,12 @@ integration:
 	@echo "Select an integration test to run:"
 	@echo "1. All integration tests"
 	@echo "2. TestAnalyzeIntegration"
-	@echo "3. TestRateLimiterIntegration"
+	@echo "3. All RateLimiter tests (Inbound + Outbound)"
 	@read -p "Enter your choice: " choice; \
 	case $$choice in \
 		1) go test ./test/integration/... -count=1 ;; \
 		2) go test ./test/integration/... -run TestAnalyzeIntegration -count=1 ;; \
-		3) go test ./test/integration/... -run TestRateLimiterIntegration -count=1 ;; \
+		3) go test ./test/integration/... -run RateLimiter -count=1 ;; \
 		*) echo "Invalid choice." ;; \
 	esac
 
