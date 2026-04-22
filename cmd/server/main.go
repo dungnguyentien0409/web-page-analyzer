@@ -101,12 +101,18 @@ func main() {
 	// Middleware chain: RequestID -> RateLimit -> Handlers
 	handler := middleware.RequestID(limiter.Middleware(mux))
 
+	// Get port from environment (Render sets PORT)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + port,
 		Handler: handler,
 	}
 	go func() {
-		logger.Info("Server running", "addr", ":8080", "url", "http://localhost:8080")
+		logger.Info("Server running", "addr", ":"+port, "url", "http://localhost:"+port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("listen failed", "error", err)
 			os.Exit(1)

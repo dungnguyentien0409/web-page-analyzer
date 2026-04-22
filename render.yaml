@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: web-page-analyzer
+    env: docker
+    region: frankfurt
+    plan: free
+    branch: main
+    envVars:
+      - key: CONFIG_PATH
+        value: /app/configs/production.json
+      - key: LOG_LEVEL
+        value: info

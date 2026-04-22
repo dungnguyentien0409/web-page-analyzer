@@ -1,0 +1,21 @@
+{
+    "request_timeout_seconds": 60, 
+    "link_check_workers": 20, 
+    "link_check_retries": 2, 
+    "rate_limit_rps": 5.0, 
+    "rate_limit_burst": 10, 
+    "outbound_global_rps": 200, 
+    "outbound_global_burst": 50, 
+    "outbound_host_rps": 50, 
+    "outbound_host_burst": 20, 
+    "fetcher_timeout_sec": 15, 
+    "fetcher_dial_timeout_sec": 5, 
+    "fetcher_dial_keep_alive_sec": 30, 
+    "fetcher_max_idle_conns": 100, 
+    "fetcher_max_idle_conns_per_host": 20, 
+    "fetcher_idle_conn_timeout_sec": 90, 
+    "fetcher_tls_handshake_sec": 5, 
+    "link_check_timeout_sec": 5, 
+    "link_check_max_idle_conns": 100, 
+    "link_check_max_idle_per_host": 20
+}

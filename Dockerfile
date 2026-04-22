@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -8,6 +8,7 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s" \
     -o bin/analyzer \
     ./cmd/server/main.go
 
@@ -20,9 +21,10 @@ WORKDIR /app
 
 COPY --from=builder /app/bin/analyzer .
 COPY --from=builder /app/web ./web
-
-# ADD THIS (quan trọng nhất)
 COPY --from=builder /app/configs ./configs
+
+# Set default config path
+ENV CONFIG_PATH=/app/configs/production.json
 
 EXPOSE 8080
 
