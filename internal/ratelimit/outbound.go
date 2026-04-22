@@ -26,6 +26,7 @@ type OutboundLimiter struct {
 type hostEntry struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
+	mu       sync.Mutex
 }
 
 type OutboundConfig struct {
@@ -105,7 +106,9 @@ func (o *OutboundLimiter) getHostLimiter(host string) *rate.Limiter {
 	// Check existing
 	if v, ok := o.hosts.Load(host); ok {
 		entry := v.(*hostEntry)
+		entry.mu.Lock()
 		entry.lastSeen = time.Now()
+		entry.mu.Unlock()
 		return entry.limiter
 	}
 
@@ -145,7 +148,11 @@ func (o *OutboundLimiter) doCleanup() {
 	o.hosts.Range(func(key, value interface{}) bool {
 		entry := value.(*hostEntry)
 
-		if now.Sub(entry.lastSeen) > o.ttl {
+		entry.mu.Lock()
+		expired := now.Sub(entry.lastSeen) > o.ttl
+		entry.mu.Unlock()
+
+		if expired {
 			o.hosts.Delete(key)
 			cleaned++
 		}
